@@ -1,21 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, Circle } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import Layout from "../Layout/Layout";
 import { useStore } from "../Store/Store";
-import { initializeApp } from "firebase/app";
-import { getDatabase, ref, onValue, set, remove } from "firebase/database";
 import L from "leaflet";
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import "./Live.css"; // Import the CSS file
-import { firebaseConfig } from "./Firebase";
-import {  toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-const app = initializeApp(firebaseConfig);
-const database = getDatabase(app);
 
 const locationIcon = new L.Icon({
   iconUrl: markerIcon,
@@ -63,21 +57,25 @@ export default function Live() {
   useEffect(() => {
     const listeners = [];
 
-    const subscribeToDevice = (device) => {
-      const gpsRef = ref(database, `${device}/Realtime`);
-      const unsubscribe = onValue(gpsRef, (snapshot) => {
-        const data = snapshot.val();
-        if (data?.timestamp) {
-          const [date, time, lat, lng] = data.timestamp.split(",");
-          const latitude = parseFloat(lat);
-          const longitude = parseFloat(lng);
+    const fetchDeviceData = async (device) => {
+      try {
+        const response = await fetch(`https://production-server-tygz.onrender.com/api/realtime/${device}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (data?.time && data?.date) {
+          const latitude = parseFloat(data.latitude);
+          const longitude = parseFloat(data.longitude);
 
           setDeviceData((prev) => ({
             ...prev,
             [device]: {
               lat: latitude,
               lng: longitude,
-              lastUpdated: `${date} ${time}`,
+              lastUpdated: `${data.date} ${data.time}`,
               found: true,
             },
           }));
@@ -88,17 +86,62 @@ export default function Live() {
             [device]: { found: false },
           }));
         }
-      });
+      } catch (error) {
+        console.error("Error fetching device data:", error);
+        setError("Failed to fetch device data.");
+      }
+    };
 
-      listeners.push(unsubscribe);
+    const fetchGeofencingData = async (device) => {
+      try {
+        const response = await fetch(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        const data = await response.json();
+        if (data?._id) {
+          setDeviceData((prev) => ({
+            ...prev,
+            [device]: {
+              ...prev[device],
+              geofencing: {
+                lat: data.latitude,
+                lng: data.longitude,
+              },
+            }
+          }));
+        } else {
+          setDeviceData((prev) => ({
+            ...prev,
+            [device]: {
+              ...prev[device],
+              geofencing: false,
+            }
+          }));
+        }
+      } catch (error) {
+        console.error("Error fetching geofencing data:", error);
+        setError("Failed to fetch geofencing data.");
+      }
+    };
+
+    const fetchAllData = (device) => {
+      fetchDeviceData(device);
+      fetchGeofencingData(device);
     };
 
     if (selectedDevices.length > 0) {
-      selectedDevices.forEach(subscribeToDevice);
+      selectedDevices.forEach(device => {
+        fetchAllData(device);
+        const interval = setInterval(() => fetchAllData(device), 30000); // Fetch data every 30 seconds
+        listeners.push(interval);
+      });
     }
 
     return () => {
-      listeners.forEach((unsubscribe) => unsubscribe());
+      listeners.forEach(clearInterval);
     };
   }, [selectedDevices]);
 
@@ -140,11 +183,30 @@ export default function Live() {
     const data = deviceData[device];
     if (data?.found) {
       try {
-        await set(ref(database, `${device}/geofencing`), {
-          lat: data.lat,
-          lng: data.lng,
+        const response = await fetch('https://production-server-tygz.onrender.com/api/device/geofencing', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            customerId: "CUST-651975004",
+            deviceName: device,
+            latitude: data.lat,
+            longitude: data.lng
+          })
         });
+        const result = await response.json();
         toast.success("Geofencing coordinates added successfully.");
+        setDeviceData((prev) => ({
+          ...prev,
+          [device]: {
+            ...prev[device],
+            geofencing: {
+              lat: data.lat,
+              lng: data.lng,
+            },
+          }
+        }));
       } catch (error) {
         console.error("Error adding geofencing coordinates:", error);
         setError("Failed to add geofencing coordinates.");
@@ -155,8 +217,25 @@ export default function Live() {
 
   const handleDeleteGeofencing = async (device) => {
     try {
-      await remove(ref(database, `${device}/geofencing`));
+      const response = await fetch(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          customerId: "CUST-651975004",
+          deviceName: device
+        })
+      });
+      const result = await response.json();
       toast.success("Geofencing coordinates deleted successfully.");
+      setDeviceData((prev) => ({
+        ...prev,
+        [device]: {
+          ...prev[device],
+          geofencing: false,
+        }
+      }));
     } catch (error) {
       console.error("Error deleting geofencing coordinates:", error);
       setError("Failed to delete geofencing coordinates.");
@@ -166,7 +245,7 @@ export default function Live() {
 
   return (
     <Layout title={"Vmarg - Live"}>
-    <center><h1>Live Device Tracking</h1></center>
+      <center><h1>Live Device Tracking</h1></center>
       <div className="live-container">
         <div className="map-container">
           <MapContainer
@@ -194,14 +273,29 @@ export default function Live() {
                     <button onClick={() => handleDelete(device)} className="delete-button">
                       Delete Device
                     </button>
-                    <button onClick={() => handleAddGeofencing(device)} className="geofencing-button">
-                      Add Geofencing
-                    </button>
-                    <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button">
-                      Delete Geofencing
-                    </button>
+                    {!data.geofencing && (
+                      <button onClick={() => handleAddGeofencing(device)} className="geofencing-button">
+                        Add Geofencing
+                      </button>
+                    )}
+                    {data.geofencing && (
+                      <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button">
+                        Delete Geofencing
+                      </button>
+                    )}
                   </Popup>
                 </Marker>
+              ) : null;
+            })}
+            {selectedDevices.map((device) => {
+              const data = deviceData[device];
+              return data?.geofencing ? (
+                <Circle
+                  key={`geofence-${device}`}
+                  center={[data.geofencing.lat, data.geofencing.lng]}
+                  radius={1000} // 1 km radius
+                  color="red"
+                />
               ) : null;
             })}
           </MapContainer>
@@ -233,8 +327,12 @@ export default function Live() {
                     <p>Last Updated: {deviceData[device]?.lastUpdated ?? "Waiting for update..."}</p>
                     <button onClick={() => handleShare(device)} className="share-button"> View on Google Maps</button>
                     <button onClick={() => handleDelete(device)} className="delete-button"> Delete Device</button>
-                    <button onClick={() => handleAddGeofencing(device)} className="geofencing-button"> Add Geofencing</button>
-                    <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
+                    {!deviceData[device]?.geofencing && (
+                      <button onClick={() => handleAddGeofencing(device)} className="geofencing-button"> Add Geofencing</button>
+                    )}
+                    {deviceData[device]?.geofencing && (
+                      <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
+                    )}
                   </>
                 )}
                 <hr />
