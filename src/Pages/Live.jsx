@@ -10,6 +10,7 @@ import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import "./Live.css"; // Import the CSS file
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import axios from 'axios';
 
 const locationIcon = new L.Icon({
   iconUrl: markerIcon,
@@ -59,13 +60,8 @@ export default function Live() {
 
     const fetchDeviceData = async (device) => {
       try {
-        const response = await fetch(`https://production-server-tygz.onrender.com/api/realtime/${device}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const response = await axios.get(`https://production-server-tygz.onrender.com/api/realtime/${device}`);
+        const data = response.data;
         if (data?.time && data?.date) {
           const latitude = parseFloat(data.latitude);
           const longitude = parseFloat(data.longitude);
@@ -94,13 +90,8 @@ export default function Live() {
 
     const fetchGeofencingData = async (device) => {
       try {
-        const response = await fetch(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        });
-        const data = await response.json();
+        const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device}`);
+        const data = response.data;
         if (data?._id) {
           setDeviceData((prev) => ({
             ...prev,
@@ -183,19 +174,12 @@ export default function Live() {
     const data = deviceData[device];
     if (data?.found) {
       try {
-        const response = await fetch('https://production-server-tygz.onrender.com/api/device/geofencing', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            customerId: "CUST-651975004",
-            deviceName: device,
-            latitude: data.lat,
-            longitude: data.lng
-          })
+        const response = await axios.post('https://production-server-tygz.onrender.com/api/device/geofencing', {
+          customerId: "CUST-651975004",
+          deviceName: device,
+          latitude: data.lat,
+          longitude: data.lng
         });
-        const result = await response.json();
         toast.success("Geofencing coordinates added successfully.");
         setDeviceData((prev) => ({
           ...prev,
@@ -217,17 +201,12 @@ export default function Live() {
 
   const handleDeleteGeofencing = async (device) => {
     try {
-      const response = await fetch(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
+      const response = await axios.delete(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
+        data: {
           customerId: "CUST-651975004",
           deviceName: device
-        })
+        }
       });
-      const result = await response.json();
       toast.success("Geofencing coordinates deleted successfully.");
       setDeviceData((prev) => ({
         ...prev,
