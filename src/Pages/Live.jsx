@@ -45,11 +45,11 @@ export default function Live() {
           setDeviceOptions(options);
           setSelectedDevices([options[0].value]); // Select the first device
         } else {
-          setError("You don't have any registered devices. Please register a device.");
+          console.log("You don't have any registered devices. Please register a device.");
         }
       } catch (error) {
         console.error("Error fetching registered devices:", error);
-        setError("Failed to fetch registered devices.");
+        console.log("Failed to fetch registered devices.");
       }
     };
     fetchDevices();
@@ -84,7 +84,7 @@ export default function Live() {
         }
       } catch (error) {
         console.error("Error fetching device data:", error);
-        setError("Failed to fetch device data.");
+        console.log("Failed to fetch device data.");
       }
     };
 
@@ -114,7 +114,7 @@ export default function Live() {
         }
       } catch (error) {
         console.error("Error fetching geofencing data:", error);
-        setError("Failed to fetch geofencing data.");
+        console.log("Failed to fetch geofencing data.");
       }
     };
 
@@ -165,7 +165,7 @@ export default function Live() {
       toast.success("Device deleted successfully.");
     } catch (error) {
       console.error("Error deleting device:", error);
-      setError("Failed to delete device.");
+      console.log("Failed to delete device.");
       toast.error("Failed to delete device.");
     }
   };
@@ -193,7 +193,6 @@ export default function Live() {
         }));
       } catch (error) {
         console.error("Error adding geofencing coordinates:", error);
-        setError("Failed to add geofencing coordinates.");
         toast.error("Failed to add geofencing coordinates.");
       }
     }
@@ -217,7 +216,6 @@ export default function Live() {
       }));
     } catch (error) {
       console.error("Error deleting geofencing coordinates:", error);
-      setError("Failed to delete geofencing coordinates.");
       toast.error("Failed to delete geofencing coordinates.");
     }
   };
