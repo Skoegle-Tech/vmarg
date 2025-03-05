@@ -31,7 +31,38 @@ export default function Live() {
   const [error, setError] = useState(null);
   const { GetRegisterdDevices, deleteRegesteredDevice } = useStore();
   const [nickname, setNickname] = useState("");
+  const [deviceName, setDeviceName] = useState("");
   const defaultLatLng = { lat: 20.5937, lng: 78.9629 };
+
+  const fetchGeofencingData = async (device) => {
+    try {
+      const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device|| selectedDevices[0]}`);
+      const data = response.data;
+      if (data?._id) {
+        setDeviceData((prev) => ({
+          ...prev,
+          [device]: {
+            ...prev[device],
+            geofencing: {
+              lat: data.latitude,
+              lng: data.longitude,
+            },
+          }
+        }));
+      } else {
+        setDeviceData((prev) => ({
+          ...prev,
+          [device]: {
+            ...prev[device],
+            geofencing: false,
+          }
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching geofencing data:", error);
+      console.log("Failed to fetch geofencing data.");
+    }
+  };
 
   useEffect(() => {
     const fetchDevices = async () => {
@@ -44,6 +75,9 @@ export default function Live() {
           }));
           setDeviceOptions(options);
           setSelectedDevices([options[0].value]); // Select the first device
+
+          // Fetch geofencing data for each device
+          options.forEach(option => fetchGeofencingData(option.value));
         } else {
           console.log("You don't have any registered devices. Please register a device.");
         }
@@ -53,6 +87,7 @@ export default function Live() {
       }
     };
     fetchDevices();
+    
   }, [GetRegisterdDevices]);
 
   useEffect(() => {
@@ -88,36 +123,6 @@ export default function Live() {
       }
     };
 
-    const fetchGeofencingData = async (device) => {
-      try {
-        const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device}`);
-        const data = response.data;
-        if (data?._id) {
-          setDeviceData((prev) => ({
-            ...prev,
-            [device]: {
-              ...prev[device],
-              geofencing: {
-                lat: data.latitude,
-                lng: data.longitude,
-              },
-            }
-          }));
-        } else {
-          setDeviceData((prev) => ({
-            ...prev,
-            [device]: {
-              ...prev[device],
-              geofencing: false,
-            }
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching geofencing data:", error);
-        console.log("Failed to fetch geofencing data.");
-      }
-    };
-
     const fetchAllData = (device) => {
       fetchDeviceData(device);
       fetchGeofencingData(device);
@@ -130,6 +135,8 @@ export default function Live() {
         listeners.push(interval);
       });
     }
+    
+    fetchGeofencingData()
 
     return () => {
       listeners.forEach(clearInterval);
@@ -310,6 +317,8 @@ export default function Live() {
                     {deviceData[device]?.geofencing && (
                       <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
                     )}
+
+                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button>
                   </>
                 )}
                 <hr />
