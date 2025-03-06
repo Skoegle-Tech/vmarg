@@ -74,9 +74,7 @@ export default function Live() {
             label: device.nickname || device.deviceName,
           }));
           setDeviceOptions(options);
-          setSelectedDevices([options[0].value]); // Select the first device
-
-          // Fetch geofencing data for each device
+          setSelectedDevices([options[0].value]);
           options.forEach(option => fetchGeofencingData(option.value));
         } else {
           console.log("You don't have any registered devices. Please register a device.");
@@ -311,10 +309,10 @@ export default function Live() {
                     <p>Last Updated: {deviceData[device]?.lastUpdated ?? "Waiting for update..."}</p>
                     <button onClick={() => handleShare(device)} className="share-button"> View on Google Maps</button>
                     <button onClick={() => handleDelete(device)} className="delete-button"> Delete Device</button>
-                    {!deviceData[device]?.geofencing && (
+                    {!deviceData[device]?.geofencing &&  !deviceData[device]&&(
                       <button onClick={() => handleAddGeofencing(device)} className="geofencing-button"> Add Geofencing</button>
                     )}
-                    {deviceData[device]?.geofencing && (
+                    {deviceData[device]?.geofencing && deviceData[device] &&  (
                       <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
                     )}
 
