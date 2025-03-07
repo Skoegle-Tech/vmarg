@@ -309,13 +309,14 @@ export default function Live() {
                     <p>Last Updated: {deviceData[device]?.lastUpdated ?? "Waiting for update..."}</p>
                     <button onClick={() => handleShare(device)} className="share-button"> View on Google Maps</button>
                     <button onClick={() => handleDelete(device)} className="delete-button"> Delete Device</button>
-                    {!deviceData[device]?.geofencing &&(
+                    {/* {!deviceData[device]?.geofencing &&(
                       <button onClick={() => handleAddGeofencing(device)} className="geofencing-button"> Add Geofencing</button>
                     )}
                     {deviceData[device]?.geofencing && deviceData[device] &&  (
                       <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
-                    )}
+                    )} */} 
 
+                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Set Home Location</button>
                      <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button>
                   </>
                 )}
