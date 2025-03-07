@@ -33,6 +33,11 @@ export default function Live() {
   const [nickname, setNickname] = useState("");
   const [deviceName, setDeviceName] = useState("");
   const defaultLatLng = { lat: 20.5937, lng: 78.9629 };
+  const [radius, setRadius] = useState("");
+  const [geolatidude, setGeolatidude] = useState("");
+  const [geolongitude, setGeolongitude] = useState("");
+
+ const [getLocation,setLocation] = useState(false);
 
   const fetchGeofencingData = async (device) => {
     try {
@@ -225,8 +230,8 @@ export default function Live() {
     }
   };
   const passmessage = () => {
-    // Message format: "SET latitude longitude radius"
-    const message = "SET 25.44,55.55,5";
+   console.log(geolatidude,geolongitude,radius);
+    const message = `SET ${geolatidude},${geolongitude},${radius}`;
     const phoneNumber = "9108477033";
     const encodedMessage = encodeURIComponent(message);
     toast.success("Home Location Set Successfully");
@@ -327,12 +332,31 @@ export default function Live() {
                     {deviceData[device]?.geofencing && deviceData[device] &&  (
                       <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
                     )} */} 
-
-                     <button onClick={() => passmessage()} className="geofencing-button"> Set Home Location</button>
-                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button>
+                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button> 
+                      <button onClick={() => setLocation(true)} className="geofencing-button"> Set Home Location</button>
+                   {getLocation && (<> <br/> 
+                     <input type="text" placeholder="Enter Latitude" onChange={(e) => setGeolatidude(e.target.value)} />
+                     <br/> 
+                      <input type="text" placeholder="Enter Longitude" onChange={(e) => setGeolongitude(e.target.value)} />
+                      <br/> 
+                      <input type="text" placeholder="Enter radius" onChange={(e) => setRadius(e.target.value)} />
+                      <br/>
+                      <button onClick={() =>{ 
+                        setLocation(false)
+                        passmessage()
+                        }} className="geofencing-button"> 
+                        Submit
+                      </button>
+                      <button onClick={() => setLocation(false)} className="geofencing-button"> 
+                        Cancel
+                      </button>
+                      
+                      </> )} 
                   </>
                 )}
                 <hr />
+                <br/>
+                <br/>
               </div>
             ))
           )}
