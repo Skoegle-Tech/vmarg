@@ -224,7 +224,19 @@ export default function Live() {
       toast.error("Failed to delete geofencing coordinates.");
     }
   };
-
+  const passmessage = () => {
+    // Message format: "SET latitude longitude radius"
+    const message = "SET 25.44,55.55,5";
+    const phoneNumber = "9108477033";
+    const encodedMessage = encodeURIComponent(message);
+    toast.success("Home Location Set Successfully");
+   setTimeout(() => {
+     window.location.href = `sms:${phoneNumber}?body=${encodedMessage}`;
+    
+   },2000 );
+  
+  };
+  
   return (
     <Layout title={"Vmarg - Live"}>
       <center><h1>Live Device Tracking</h1></center>
@@ -316,7 +328,7 @@ export default function Live() {
                       <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
                     )} */} 
 
-                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Set Home Location</button>
+                     <button onClick={() => passmessage()} className="geofencing-button"> Set Home Location</button>
                      <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button>
                   </>
                 )}
