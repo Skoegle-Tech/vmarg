@@ -38,13 +38,13 @@ const Menu = () => {
             to="/" // Home route
             style={{ color: isActive('/') ? 'primary' : 'inherit' }} // Highlight active route
           />
-          <BottomNavigationAction
+          {/* <BottomNavigationAction
             label="Live Preview"
             icon={<Visibility />}
             component={Link}
             to="/track" // Live preview route
             style={{ color: isActive('/live') ? 'primary' : 'inherit' }} // Highlight active route
-          />
+          /> */}
           
           {/* Show Profile icon only when the user is not an admin */}
           {!isAdmin && (

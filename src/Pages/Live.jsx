@@ -12,6 +12,31 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 
+// Material UI imports
+import { 
+  Button, 
+  Slider, 
+  Typography, 
+  Paper, 
+  Box, 
+  Select, 
+  MenuItem, 
+  FormControl, 
+  InputLabel,
+  OutlinedInput, 
+  Chip,
+  IconButton,
+  Tooltip,
+  TextField
+} from '@mui/material';
+import { 
+  Map as MapIcon, 
+  Delete as DeleteIcon, 
+  Adjust as AdjustIcon, 
+  LocationOn as LocationOnIcon,
+  Cancel as CancelIcon,
+  Refresh as RefreshIcon 
+} from '@mui/icons-material';
 const locationIcon = new L.Icon({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -36,12 +61,12 @@ export default function Live() {
   const [radius, setRadius] = useState("");
   const [geolatidude, setGeolatidude] = useState("");
   const [geolongitude, setGeolongitude] = useState("");
-
- const [getLocation,setLocation] = useState(false);
+  const [getLocation, setLocation] = useState(false);
+  const [sliderValue, setSliderValue] = useState(1);
 
   const fetchGeofencingData = async (device) => {
     try {
-      const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device|| selectedDevices[0]}`);
+      const response = await axios.get(`http://localhost:12000/api/geofencing/${device|| selectedDevices[0]}`);
       const data = response.data;
       if (data?._id) {
         setDeviceData((prev) => ({
@@ -51,9 +76,17 @@ export default function Live() {
             geofencing: {
               lat: data.latitude,
               lng: data.longitude,
+              main: data.main,
+              battery: data.battery,
+              radius: data.radius,
             },
           }
         }));
+        
+        // Set the slider to match the current radius
+        if (data.radius) {
+          setSliderValue(data.radius);
+        }
       } else {
         setDeviceData((prev) => ({
           ...prev,
@@ -65,8 +98,44 @@ export default function Live() {
       }
     } catch (error) {
       console.error("Error fetching geofencing data:", error);
-      console.log("Failed to fetch geofencing data.");
+      toast.error("Failed to fetch geofencing data.");
     }
+  };
+
+  // Function to update radius via API
+  const updateRadius = async (device, radius) => {
+    try {
+      await axios.put(`http://localhost:12000/api/geofencing/${device}/${radius}`, {
+        radius: radius
+      });
+      
+      // Update local state to reflect the new radius
+      setDeviceData((prev) => ({
+        ...prev,
+        [device]: {
+          ...prev[device],
+          geofencing: {
+            ...prev[device].geofencing,
+            radius: radius,
+          }
+        }
+      }));
+      
+      toast.success(`Radius updated to ${radius}km successfully`);
+    } catch (error) {
+      console.error("Error updating radius:", error);
+      toast.error("Failed to update radius");
+    }
+  };
+
+  // Handle slider change
+  const handleSliderChange = (e, newValue) => {
+    setSliderValue(newValue);
+  };
+
+  // Apply radius change when slider is released
+  const handleSliderCommit = (e, newValue, device) => {
+    updateRadius(device, newValue);
   };
 
   useEffect(() => {
@@ -82,11 +151,11 @@ export default function Live() {
           setSelectedDevices([options[0].value]);
           options.forEach(option => fetchGeofencingData(option.value));
         } else {
-          console.log("You don't have any registered devices. Please register a device.");
+          toast.info("You don't have any registered devices. Please register a device.");
         }
       } catch (error) {
         console.error("Error fetching registered devices:", error);
-        console.log("Failed to fetch registered devices.");
+        toast.error("Failed to fetch registered devices.");
       }
     };
     fetchDevices();
@@ -98,7 +167,7 @@ export default function Live() {
 
     const fetchDeviceData = async (device) => {
       try {
-        const response = await axios.get(`https://production-server-tygz.onrender.com/api/realtime/${device}`);
+        const response = await axios.get(`http://localhost:12000/api/realtime/${device}`);
         const data = response.data;
         if (data?.time && data?.date) {
           const latitude = parseFloat(data.latitude);
@@ -122,7 +191,7 @@ export default function Live() {
         }
       } catch (error) {
         console.error("Error fetching device data:", error);
-        console.log("Failed to fetch device data.");
+        toast.error("Failed to fetch device data.");
       }
     };
 
@@ -138,8 +207,6 @@ export default function Live() {
         listeners.push(interval);
       });
     }
-    
-    fetchGeofencingData()
 
     return () => {
       listeners.forEach(clearInterval);
@@ -154,9 +221,12 @@ export default function Live() {
     }
   }, [mapCenter]);
 
-  const handleDeviceChange = (e) => {
-    const selected = Array.from(e.target.selectedOptions, (option) => option.value);
-    setSelectedDevices(selected);
+  const handleDeviceChange = (event) => {
+    const { target: { value } } = event;
+    setSelectedDevices(
+      // On autofill we get a stringified value.
+      typeof value === 'string' ? value.split(',') : value,
+    );
   };
 
   const handleShare = (device) => {
@@ -175,7 +245,6 @@ export default function Live() {
       toast.success("Device deleted successfully.");
     } catch (error) {
       console.error("Error deleting device:", error);
-      console.log("Failed to delete device.");
       toast.error("Failed to delete device.");
     }
   };
@@ -184,12 +253,20 @@ export default function Live() {
     const data = deviceData[device];
     if (data?.found) {
       try {
-        const response = await axios.post('https://production-server-tygz.onrender.com/api/device/geofencing', {
-          customerId: "CUST-651975004",
-          deviceName: device,
-          latitude: data.lat,
-          longitude: data.lng
-        });
+        const response = await axios.post(
+          'http://localhost:12000/api/device/geofencing',
+          {
+            deviceName: device,
+            latitude: data.lat,
+            longitude: data.lng
+          },
+          {
+            headers: {
+              'Authorization': `Bearer ${localStorage?.getItem("token")}`
+            }
+          }
+        );
+  
         toast.success("Geofencing coordinates added successfully.");
         setDeviceData((prev) => ({
           ...prev,
@@ -198,22 +275,28 @@ export default function Live() {
             geofencing: {
               lat: data.lat,
               lng: data.lng,
+              radius: 1, // Default radius when creating a new geofence
             },
           }
         }));
+        // Set default slider value for new geofence
+        setSliderValue(1);
       } catch (error) {
         console.error("Error adding geofencing coordinates:", error);
         toast.error("Failed to add geofencing coordinates.");
       }
     }
   };
+  
 
   const handleDeleteGeofencing = async (device) => {
     try {
-      const response = await axios.delete(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
+      const response = await axios.delete(`http://localhost:12000/api/geofencing/${device}`, {
         data: {
-          customerId: "CUST-651975004",
           deviceName: device
+        },
+        headers: {
+          'Authorization': `Bearer ${localStorage?.getItem("token")}`
         }
       });
       toast.success("Geofencing coordinates deleted successfully.");
@@ -229,22 +312,23 @@ export default function Live() {
       toast.error("Failed to delete geofencing coordinates.");
     }
   };
+  
   const passmessage = () => {
-   console.log(geolatidude,geolongitude,radius);
+    console.log(geolatidude, geolongitude, radius);
     const message = `SET ${geolatidude},${geolongitude},${radius}`;
     const phoneNumber = "9108477033";
     const encodedMessage = encodeURIComponent(message);
     toast.success("Home Location Set Successfully");
-   setTimeout(() => {
-     window.location.href = `sms:${phoneNumber}?body=${encodedMessage}`;
-    
-   },2000 );
-  
+    setTimeout(() => {
+      window.location.href = `sms:${phoneNumber}?body=${encodedMessage}`;
+    }, 2000);
   };
-  
+
   return (
     <Layout title={"Vmarg - Live"}>
-      <center><h1>Live Device Tracking</h1></center>
+      <Typography variant="h4" component="h1" align="center" gutterBottom sx={{ fontWeight: 'bold', my: 2 }}>
+        Live Device Tracking
+      </Typography>
       <div className="live-container">
         <div className="map-container">
           <MapContainer
@@ -262,26 +346,56 @@ export default function Live() {
               return data?.found ? (
                 <Marker key={device} position={[data.lat, data.lng]} icon={locationIcon}>
                   <Popup>
-                    <strong>{deviceOptions.find(option => option.value === device)?.label}</strong> <br />
-                    Latitude: {data.lat} <br />
-                    Longitude: {data.lng} <br />
-                    Last Updated: {data.lastUpdated} <br />
-                    <button onClick={() => handleShare(device)} className="share-button">
-                      Share Location
-                    </button>
-                    <button onClick={() => handleDelete(device)} className="delete-button">
-                      Delete Device
-                    </button>
-                    {!data.geofencing && (
-                      <button onClick={() => handleAddGeofencing(device)} className="geofencing-button">
-                        Add Geofencing
-                      </button>
-                    )}
-                    {data.geofencing && (
-                      <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button">
-                        Delete Geofencing
-                      </button>
-                    )}
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                      {deviceOptions.find(option => option.value === device)?.label}
+                    </Typography>
+                    <Typography variant="body2">Latitude: {data.lat}</Typography>
+                    <Typography variant="body2">Longitude: {data.lng}</Typography>
+                    <Typography variant="body2" sx={{ mb: 1 }}>Last Updated: {data.lastUpdated}</Typography>
+                    
+                    <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                      <Tooltip title="View on Google Maps">
+                        <IconButton 
+                          size="small" 
+                          color="primary" 
+                          onClick={() => handleShare(device)}
+                        >
+                          <MapIcon />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      <Tooltip title="Delete Device">
+                        <IconButton 
+                          size="small" 
+                          color="error" 
+                          onClick={() => handleDelete(device)}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      {!data.geofencing ? (
+                        <Tooltip title="Add Geofencing">
+                          <IconButton 
+                            size="small" 
+                            color="success" 
+                            onClick={() => handleAddGeofencing(device)}
+                          >
+                            <AdjustIcon />
+                          </IconButton>
+                        </Tooltip>
+                      ) : (
+                        <Tooltip title="Delete Geofencing">
+                          <IconButton 
+                            size="small" 
+                            color="warning" 
+                            onClick={() => handleDeleteGeofencing(device)}
+                          >
+                            <CancelIcon />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </Box>
                   </Popup>
                 </Marker>
               ) : null;
@@ -292,72 +406,242 @@ export default function Live() {
                 <Circle
                   key={`geofence-${device}`}
                   center={[data.geofencing.lat, data.geofencing.lng]}
-                  radius={1000} // 1 km radius
+                  radius={data.geofencing.radius * 1000} // Convert to meters (1 unit = 1km)
                   color="red"
                 />
               ) : null;
             })}
           </MapContainer>
 
-          <div className="device-selector">
-            <select id="devices" multiple onChange={handleDeviceChange} value={selectedDevices}>
-              {deviceOptions.map((device) => (
-                <option key={device.value} value={device.value}>
-                  {device.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Paper className="device-selector" elevation={3}>
+            <FormControl sx={{ width: 200 }}>
+              <InputLabel id="device-select-label">Devices</InputLabel>
+              <Select
+                labelId="device-select-label"
+                id="device-select"
+                multiple
+                value={selectedDevices}
+                onChange={handleDeviceChange}
+                input={<OutlinedInput label="Devices" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip 
+                        key={value} 
+                        label={deviceOptions.find(option => option.value === value)?.label} 
+                        size="small"
+                      />
+                    ))}
+                  </Box>
+                )}
+              >
+                {deviceOptions.map((device) => (
+                  <MenuItem key={device.value} value={device.value}>
+                    {device.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Paper>
         </div>
 
         <div className="device-info">
           {error ? (
-            <p className="error-message">{error}</p>
+            <Typography color="error">{error}</Typography>
           ) : (
             selectedDevices.map((device) => (
-              <div key={device} className="device-details">
-                <h3>{deviceOptions.find(option => option.value === device)?.label}</h3>
+              <Paper 
+                key={device} 
+                elevation={3} 
+                sx={{ 
+                  p: 2, 
+                  mb: 3, 
+                  borderRadius: 2,
+                  background: 'linear-gradient(to right bottom, #ffffff, #f8f9fa)' 
+                }}
+              >
+                <Typography variant="h6" gutterBottom sx={{ borderBottom: '1px solid #eaeaea', pb: 1 }}>
+                  <LocationOnIcon fontSize="small" sx={{ verticalAlign: 'middle', mr: 1 }} />
+                  {deviceOptions.find(option => option.value === device)?.label}
+                </Typography>
+                
                 {deviceData[device]?.found === false ? (
-                  <p className="device-not-found">Device not found. Latitude and Longitude not available.</p>
+                  <Typography color="error">
+                    Device not found. Latitude and Longitude not available.
+                  </Typography>
                 ) : (
                   <>
-                    <p>Latitude: {deviceData[device]?.lat ?? "Loading..."}</p>
-                    <p>Longitude: {deviceData[device]?.lng ?? "Loading..."}</p>
-                    <p>Last Updated: {deviceData[device]?.lastUpdated ?? "Waiting for update..."}</p>
-                    <button onClick={() => handleShare(device)} className="share-button"> View on Google Maps</button>
-                    <button onClick={() => handleDelete(device)} className="delete-button"> Delete Device</button>
-                    {/* {!deviceData[device]?.geofencing &&(
-                      <button onClick={() => handleAddGeofencing(device)} className="geofencing-button"> Add Geofencing</button>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" sx={{ my: 0.5 }}>
+                        <strong>Latitude:</strong> {deviceData[device]?.lat ?? "Loading..."}
+                      </Typography>
+                      <Typography variant="body2" sx={{ my: 0.5 }}>
+                        <strong>Longitude:</strong> {deviceData[device]?.lng ?? "Loading..."}
+                      </Typography>
+                      <Typography variant="body2" sx={{ my: 0.5 }}>
+                        <strong>Last Updated:</strong> {deviceData[device]?.lastUpdated ?? "Waiting for update..."}
+                      </Typography>
+                      <Typography variant="body2" sx={{ my: 0.5 }}>
+                        <strong>Geofencing:</strong> {deviceData[device]?.geofencing ? "Enabled" : "Disabled"}
+                      </Typography>
+                    </Box>
+                    
+                    {deviceData[device]?.geofencing && (
+                      <Paper variant="outlined" sx={{ p: 1.5, mb: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Geofencing Details
+                        </Typography>
+                        <Typography variant="body2" sx={{ my: 0.5 }}>
+                          <strong>Latitude:</strong> {deviceData[device]?.geofencing?.lat ?? "Loading..."}
+                        </Typography>
+                        <Typography variant="body2" sx={{ my: 0.5 }}>
+                          <strong>Longitude:</strong> {deviceData[device]?.geofencing?.lng ?? "Loading..."}
+                        </Typography>
+                        <Typography variant="body2" sx={{ my: 0.5 }}>
+                          <strong>Main:</strong> {deviceData[device]?.geofencing?.main ?? "Loading..."}
+                        </Typography>
+                        <Typography variant="body2" sx={{ my: 0.5 }}>
+                          <strong>Battery:</strong> {deviceData[device]?.geofencing?.battery ?? "Loading..."}
+                        </Typography>
+                        
+                        <Box sx={{ mt: 2 }}>
+                          <Typography variant="body2" id="radius-slider" gutterBottom>
+                            <strong>Radius:</strong> {sliderValue} km
+                          </Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Slider
+                              value={sliderValue}
+                              onChange={handleSliderChange}
+                              onChangeCommitted={(e, newValue) => handleSliderCommit(e, newValue, device)}
+                              valueLabelDisplay="auto"
+                              step={1}
+                              marks
+                              min={0.05}
+                              max={10}
+                              aria-labelledby="radius-slider"
+                              sx={{ mx: 1 }}
+                            />
+                            <Chip 
+                              label={`${sliderValue}km`} 
+                              color="primary" 
+                              size="small"
+                              sx={{ ml: 1 }}
+                            />
+                          </Box>
+                        </Box>
+                      </Paper>
                     )}
-                    {deviceData[device]?.geofencing && deviceData[device] &&  (
-                      <button onClick={() => handleDeleteGeofencing(device)} className="geofencing-button"> Delete Geofencing</button>
-                    )} */} 
-                     <button onClick={() => fetchGeofencingData(device)} className="geofencing-button"> Fetch Geofencing</button> 
-                      <button onClick={() => setLocation(true)} className="geofencing-button"> Set Home Location</button>
-                   {getLocation && (<> <br/> 
-                     <input type="text" placeholder="Enter Latitude" onChange={(e) => setGeolatidude(e.target.value)} />
-                     <br/> 
-                      <input type="text" placeholder="Enter Longitude" onChange={(e) => setGeolongitude(e.target.value)} />
-                      <br/> 
-                      <input type="text" placeholder="Enter radius" onChange={(e) => setRadius(e.target.value)} />
-                      <br/>
-                      <button onClick={() =>{ 
-                        setLocation(false)
-                        passmessage()
-                        }} className="geofencing-button"> 
-                        Submit
-                      </button>
-                      <button onClick={() => setLocation(false)} className="geofencing-button"> 
-                        Cancel
-                      </button>
+                    
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mt: 2 }}>
+                      <Button 
+                        variant="contained" 
+                        startIcon={<MapIcon />} 
+                        size="small"
+                        onClick={() => handleShare(device)}
+                      >
+                        View on Maps
+                      </Button>
                       
-                      </> )} 
+                      <Button 
+                        variant="outlined" 
+                        color="error" 
+                        startIcon={<DeleteIcon />} 
+                        size="small"
+                        onClick={() => handleDelete(device)}
+                      >
+                        Delete
+                      </Button>
+                      
+                      {!deviceData[device]?.geofencing ? (
+                        <Button 
+                          variant="outlined" 
+                          color="success" 
+                          startIcon={<AdjustIcon />}
+                          size="small" 
+                          onClick={() => handleAddGeofencing(device)}
+                        >
+                          Add Geofence
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outlined" 
+                          color="warning" 
+                          startIcon={<CancelIcon />}
+                          size="small" 
+                          onClick={() => handleDeleteGeofencing(device)}
+                        >
+                          Remove Geofence
+                        </Button>
+                      )}
+                      
+                      <Button 
+                        variant="outlined" 
+                        startIcon={<RefreshIcon />}
+                        size="small" 
+                        onClick={() => fetchGeofencingData(device)}
+                      >
+                        Refresh
+                      </Button>
+                    </Box>
+                    
+                    {getLocation && (
+                      <Box sx={{ mt: 2, p: 2, border: '1px solid #ddd', borderRadius: 1 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Set Home Location
+                        </Typography>
+                        
+                        <TextField
+                          label="Latitude"
+                          variant="outlined"
+                          fullWidth
+                          margin="dense"
+                          size="small"
+                          onChange={(e) => setGeolatidude(e.target.value)}
+                        />
+                        
+                        <TextField
+                          label="Longitude"
+                          variant="outlined"
+                          fullWidth
+                          margin="dense"
+                          size="small"
+                          onChange={(e) => setGeolongitude(e.target.value)}
+                        />
+                        
+                        <TextField
+                          label="Radius"
+                          variant="outlined"
+                          fullWidth
+                          margin="dense"
+                          size="small"
+                          onChange={(e) => setRadius(e.target.value)}
+                        />
+                        
+                        <Box sx={{ display: 'flex', gap: 1, mt: 1 }}>
+                          <Button 
+                            variant="contained" 
+                            size="small"
+                            onClick={() => { 
+                              setLocation(false);
+                              passmessage();
+                            }}
+                          >
+                            Submit
+                          </Button>
+                          
+                          <Button 
+                            variant="outlined" 
+                            size="small"
+                            onClick={() => setLocation(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </Box>
+                      </Box>
+                    )}
                   </>
                 )}
-                <hr />
-                <br/>
-                <br/>
-              </div>
+              </Paper>
             ))
           )}
         </div>

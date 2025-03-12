@@ -130,7 +130,7 @@ export const GetRegisterdDevices = async () => {
 
 export const deleteRegesteredDevice = async (device) => {
 
-  console.log
+  
   try {
       const response = await axios.delete(`${BASE_URL}/api/dmarg/device/delete`,{
      data :{
