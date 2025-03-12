@@ -66,7 +66,7 @@ export default function Live() {
 
   const fetchGeofencingData = async (device) => {
     try {
-      const response = await axios.get(`http://localhost:12000/api/geofencing/${device|| selectedDevices[0]}`);
+      const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device|| selectedDevices[0]}`);
       const data = response.data;
       if (data?._id) {
         setDeviceData((prev) => ({
@@ -105,7 +105,7 @@ export default function Live() {
   // Function to update radius via API
   const updateRadius = async (device, radius) => {
     try {
-      await axios.put(`http://localhost:12000/api/geofencing/${device}/${radius}`, {
+      await axios.put(`https://production-server-tygz.onrender.com/api/geofencing/${device}/${radius}`, {
         radius: radius
       });
       
@@ -167,7 +167,7 @@ export default function Live() {
 
     const fetchDeviceData = async (device) => {
       try {
-        const response = await axios.get(`http://localhost:12000/api/realtime/${device}`);
+        const response = await axios.get(`https://production-server-tygz.onrender.com/api/realtime/${device}`);
         const data = response.data;
         if (data?.time && data?.date) {
           const latitude = parseFloat(data.latitude);
@@ -254,7 +254,7 @@ export default function Live() {
     if (data?.found) {
       try {
         const response = await axios.post(
-          'http://localhost:12000/api/device/geofencing',
+          'https://production-server-tygz.onrender.com/api/device/geofencing',
           {
             deviceName: device,
             latitude: data.lat,
@@ -291,7 +291,7 @@ export default function Live() {
 
   const handleDeleteGeofencing = async (device) => {
     try {
-      const response = await axios.delete(`http://localhost:12000/api/geofencing/${device}`, {
+      const response = await axios.delete(`https://production-server-tygz.onrender.com/api/geofencing/${device}`, {
         data: {
           deviceName: device
         },
