@@ -46,11 +46,12 @@ export function StoreProvider({ children }) {
   }, []);
 
   const handleLogout = () => {
-    localStorage.clear(); 
+    localStorage.clear()
     setisLogin(false);
     setisAdmin(false);
     settoken("");
     console.clear()
+    window.location.href = "/login";
   };
 
   return (

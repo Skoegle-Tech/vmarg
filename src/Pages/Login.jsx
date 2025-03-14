@@ -1,22 +1,39 @@
 import { useState, useEffect } from "react";
 import { 
-  Container, TextField, Button, Typography, Box, CircularProgress 
+  Container, TextField, Button, Typography, Box, CircularProgress,
+  Paper, InputAdornment, IconButton, Grow, Slide, Fade, 
+  Divider, Grid, Stepper, Step, StepLabel, Link as MuiLink,
+  Card, CardContent, useTheme, useMediaQuery, OutlinedInput,
+  FormControl, InputLabel, FormHelperText
 } from "@mui/material";
 import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../Store/Store";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
 import { sendOtp, verifyOtp } from "smtp-package";
+import {
+  Email as EmailIcon,
+  Lock as LockIcon,
+  Visibility as VisibilityIcon,
+  VisibilityOff as VisibilityOffIcon,
+  VpnKey as VpnKeyIcon,
+  Login as LoginIcon,
+  Security as SecurityIcon,
+  AccountCircle as AccountCircleIcon,
+  ArrowBack as ArrowBackIcon
+} from '@mui/icons-material';
 
 const bypassOtpEmails = {
   "manojgowdabr89@gmail.com": true,
   "testuser@test.com": true,
-
 };
 
 export default function Login() {
   const { login, setisAdmin, setisLogin, skipotp } = useStore();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
 
   const [formData, setFormData] = useState({
     email: '',
@@ -35,6 +52,7 @@ export default function Login() {
   const [cooldown, setCooldown] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [clientInfoLoaded, setClientInfoLoaded] = useState(false);
 
   useEffect(() => {
     let timer;
@@ -169,7 +187,8 @@ export default function Login() {
           loginTime: clientInfo.loginDateTime,
           clientInfo
         }));
-
+        
+        setClientInfoLoaded(true);
       } catch (error) {
         console.error("Error fetching device details: ", error);
         const basicInfo = {
@@ -186,6 +205,7 @@ export default function Login() {
           clientInfo: basicInfo
         }));
         
+        setClientInfoLoaded(true);
         toast.error("Error fetching complete device details");
       }
     };
@@ -196,13 +216,27 @@ export default function Login() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    
+    // Clear error when typing
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: null });
+    }
   };
 
   const validate = () => {
     const tempErrors = {};
     if (!formData.email) tempErrors.email = 'Email is required';
+    else if (!/^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/.test(formData.email)) {
+      tempErrors.email = 'Please enter a valid email address';
+    }
+    
     if (step === 'login' && !formData.password) tempErrors.password = 'Password is required';
+    else if (step === 'login' && formData.password.length < 6) {
+      tempErrors.password = 'Password must be at least 6 characters';
+    }
+    
     if (step === 'otp' && !formData.otp) tempErrors.otp = 'OTP is required';
+    
     setErrors(tempErrors);
     return Object.keys(tempErrors).length === 0;
   };
@@ -243,12 +277,11 @@ export default function Login() {
           if (step === 'login') {
             // Send OTP
             await sendOtp(formData.email, 'sf8s48fsf4s4f8s4d8f48sf');
-            toast.success('OTP sent to your email.');
+            toast.success('OTP sent to your email');
             setStep('otp');
           } else if (step === 'otp') {
             // Verify OTP
             const isValidOtp = await verifyOtp(formData.email, formData.otp, 'sf8s48fsf4s4f8s4d8f48sf');
-            console.log(isValidOtp)
             if (isValidOtp?.valid) {
               // Proceed with login
               const loginData = {
@@ -297,7 +330,7 @@ export default function Login() {
       try {
         setResendLoading(true);
         await sendOtp(formData.email, 'sf8s48fsf4s4f8s4d8f48sf');
-        toast.success('OTP resent to your email.');
+        toast.success('OTP resent to your email');
         setResendCount(resendCount + 1);
         setIsResendDisabled(true);
         setCooldown(60);
@@ -311,120 +344,288 @@ export default function Login() {
     }
   };
 
+  // Handle go back to login from OTP screen
+  const handleGoBack = () => {
+    setStep('login');
+    setFormData({...formData, otp: ''});
+    setErrors({...errors, otp: null});
+  };
+
   return (
     <Layout title="Vmarg - Login">
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "90vh",
-          padding: 2,
-        }}
-      >
-        <Container maxWidth="sm">
-          <Box
-            component="form"
-            onSubmit={handleSubmit}
-            sx={{
-              width: "100%",
-              p: 3,
-              boxShadow: 3,
-              borderRadius: 2,
-              bgcolor: "background.paper",
-              display: "flex",
-              flexDirection: "column",
-              gap: 2,
-              '@media (max-width: 600px)': {
-                p: 1,
-                gap: 1.5,
-                marginLeft: -2,
-              },
+      <Container maxWidth="md" sx={{ py: { xs: 2, md: 8 } }}>
+        <Fade in={clientInfoLoaded} timeout={600}>
+          <Paper 
+            elevation={5} 
+            sx={{ 
+              borderRadius: 2, 
+              overflow: 'hidden',
+              bgcolor: 'background.paper'
             }}
           >
-            <Typography variant="h5" textAlign="center">Login</Typography>
-
-            {step === 'login' ? (
-              <>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  error={!!errors.email}
-                  helperText={errors.email}
-                  required
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  error={!!errors.password}
-                  helperText={errors.password}
-                  required
-                />
-              </>
-            ) : (
-              <>
-                <TextField
-                  fullWidth
-                  label="OTP"
-                  type="text"
-                  name="otp"
-                  value={formData.otp}
-                  onChange={handleChange}
-                  error={!!errors.otp}
-                  helperText={errors.otp}
-                  required
-                />
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  fullWidth
-                  onClick={handleResendOtp}
-                  disabled={isResendDisabled || resendLoading}
-                  sx={{
-                    padding: 1.5,
-                    fontSize: '1rem',
-                    '&:hover': { backgroundColor: 'rgb(4,4,38)' },
+            <Grid container>
+              {/* Left Panel - Hidden on mobile */}
+              {!isMobile && (
+                <Grid 
+                  item 
+                  md={5} 
+                  sx={{ 
+                    background: "linear-gradient(to bottom, #00796b, #004d40)", 
+                    p: 4,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative',
+                    color: 'white'
                   }}
-                  startIcon={resendLoading ? <CircularProgress size={20} color="inherit" /> : null}
                 >
-                  {resendLoading ? "Resending..." : isResendDisabled ? `Resend OTP (${cooldown}s)` : "Resend OTP"}
-                </Button>
-              </>
-            )}
+                  <Box sx={{ mb: 4 }}>
+                    <SecurityIcon sx={{ fontSize: 60, mb: 2, opacity: 0.8 }} />
+                    <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
+                      Welcome Back
+                    </Typography>
+                    <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
+                      Log in to access your V-Marg account and track your devices securely.
+                    </Typography>
+                    <Box sx={{ mt: 4 }}>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8, fontSize: '0.85rem' }}>
+                        Secure login with two-factor authentication
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ opacity: 0.8, fontSize: '0.85rem' }}>
+                        End-to-end encrypted connection
+                      </Typography>
+                    </Box>
+                  </Box>
 
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              type="submit"
-              disabled={loading}
-              sx={{
-                padding: 1.5,
-                fontSize: '1rem',
-                backgroundColor: '#00796b',
-                '&:hover': { backgroundColor: 'rgb(4,4,38)' },
-              }}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {loading ? "Processing..." : step === 'login' ? "Send OTP" : "Verify OTP"}
-            </Button>
+                  <Box sx={{ position: 'absolute', bottom: 20, opacity: 0.7 }}>
+                    <Typography variant="caption">
+                      © {new Date().getFullYear()} V-Marg by Skoegle
+                    </Typography>
+                  </Box>
+                </Grid>
+              )}
 
-            {step === 'login' && (
-              <Typography variant="body2" textAlign="center" mt={1}>
-                Don't have an account? <Link to="/Signup" style={{ color: "blue", textDecoration: "none" }}>Sign Up</Link>
-              </Typography>
-            )}
-          </Box>
-        </Container>
-      </Box>
+              {/* Right Panel - Login Form */}
+              <Grid 
+                item 
+                xs={12} 
+                md={7} 
+                sx={{ 
+                  p: { xs: 2, sm: 4 },
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+              >
+                <Box sx={{ mb: 4, textAlign: isMobile ? 'center' : 'left' }}>
+                  {isMobile && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                      <SecurityIcon color="primary" sx={{ fontSize: 40 }} />
+                    </Box>
+                  )}
+                  <Typography 
+                    variant="h4" 
+                    fontWeight="bold" 
+                    color="primary"
+                    sx={{ mb: 1 }}
+                  >
+                    {step === 'login' ? 'Sign In' : 'Verify OTP'}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {step === 'login' 
+                      ? 'Enter your credentials to access your account' 
+                      : `We've sent a verification code to ${formData.email}`}
+                  </Typography>
+                </Box>
+
+                {/* Login Steps Indicator */}
+                <Stepper 
+                  activeStep={step === 'login' ? 0 : 1} 
+                  alternativeLabel 
+                  sx={{ mb: 4 }}
+                >
+                  <Step>
+                    <StepLabel>Credentials</StepLabel>
+                  </Step>
+                  <Step>
+                    <StepLabel>Verification</StepLabel>
+                  </Step>
+                </Stepper>
+
+                {/* Form Content */}
+                <Box 
+                  component="form"
+                  onSubmit={handleSubmit}
+                  sx={{ width: '100%' }}
+                >
+                  {step === 'login' ? (
+                    <Fade in={step === 'login'} timeout={500}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <FormControl variant="outlined" fullWidth error={!!errors.email}>
+                          <InputLabel htmlFor="email">Email Address</InputLabel>
+                          <OutlinedInput
+                            id="email"
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <EmailIcon color="action" />
+                              </InputAdornment>
+                            }
+                            label="Email Address"
+                          />
+                          {errors.email && <FormHelperText>{errors.email}</FormHelperText>}
+                        </FormControl>
+                        
+                        <FormControl variant="outlined" fullWidth error={!!errors.password}>
+                          <InputLabel htmlFor="password">Password</InputLabel>
+                          <OutlinedInput
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <LockIcon color="action" />
+                              </InputAdornment>
+                            }
+                            endAdornment={
+                              <InputAdornment position="end">
+                                <IconButton
+                                  aria-label="toggle password visibility"
+                                  onClick={() => setShowPassword(!showPassword)}
+                                  edge="end"
+                                >
+                                  {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                                </IconButton>
+                              </InputAdornment>
+                            }
+                            label="Password"
+                          />
+                          {errors.password && <FormHelperText>{errors.password}</FormHelperText>}
+                        </FormControl>
+                        
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <Typography 
+                            variant="body2" 
+                            component={Link} 
+                            to="/forgot-password"
+                            sx={{ 
+                              color: 'primary.main', 
+                              textDecoration: 'none',
+                              '&:hover': { textDecoration: 'underline' } 
+                            }}
+                          >
+                            Forgot Password?
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Fade>
+                  ) : (
+                    <Fade in={step === 'otp'} timeout={500}>
+                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        <Box sx={{ mb: 1 }}>
+                          <Button
+                            startIcon={<ArrowBackIcon />}
+                            onClick={handleGoBack}
+                            sx={{ color: 'text.secondary', mb: 2 }}
+                          >
+                            Back to Login
+                          </Button>
+                          
+                          <Card variant="outlined" sx={{ mb: 2, bgcolor: 'primary.50' }}>
+                            <CardContent>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <EmailIcon color="primary" sx={{ mr: 1 }} />
+                                <Typography variant="body2" fontWeight="medium">
+                                  {formData.email}
+                                </Typography>
+                              </Box>
+                              <Typography variant="caption" color="text.secondary">
+                                Please check your email inbox for the OTP and enter it below
+                              </Typography>
+                            </CardContent>
+                          </Card>
+                        </Box>
+                        
+                        <FormControl variant="outlined" fullWidth error={!!errors.otp}>
+                          <InputLabel htmlFor="otp">Enter OTP</InputLabel>
+                          <OutlinedInput
+                            id="otp"
+                            name="otp"
+                            value={formData.otp}
+                            onChange={handleChange}
+                            startAdornment={
+                              <InputAdornment position="start">
+                                <VpnKeyIcon color="action" />
+                              </InputAdornment>
+                            }
+                            label="Enter OTP"
+                          />
+                          {errors.otp && <FormHelperText>{errors.otp}</FormHelperText>}
+                        </FormControl>
+                        
+                        <Button
+                          variant="outlined"
+                          color="secondary"
+                          disabled={isResendDisabled || resendLoading}
+                          onClick={handleResendOtp}
+                          startIcon={resendLoading && <CircularProgress size={16} color="inherit" />}
+                        >
+                          {resendLoading ? "Resending..." : isResendDisabled ? `Resend OTP (${cooldown}s)` : "Resend OTP"}
+                        </Button>
+                      </Box>
+                    </Fade>
+                  )}
+
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    type="submit"
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LoginIcon />}
+                    sx={{
+                      mt: 3,
+                      py: 1.2,
+                      borderRadius: 30,
+                      backgroundColor: '#00796b',
+                      fontWeight: 'bold',
+                      '&:hover': { backgroundColor: '#00635a' },
+                      boxShadow: 2,
+                    }}
+                  >
+                    {loading ? "Please wait..." : step === 'login' ? "Continue" : "Verify OTP"}
+                  </Button>
+
+                  {step === 'login' && (
+                    <Box sx={{ mt: 3, textAlign: 'center' }}>
+                      <Typography variant="body2">
+                        Don't have an account?{' '}
+                        <MuiLink 
+                          component={Link} 
+                          to="/signup" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            color: 'primary.main',
+                            textDecoration: 'none',
+                            '&:hover': { textDecoration: 'underline' } 
+                          }}
+                        >
+                          Sign Up
+                        </MuiLink>
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Fade>
+      </Container>
     </Layout>
   );
 }

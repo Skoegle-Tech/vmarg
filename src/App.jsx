@@ -3,15 +3,15 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 import { useStore } from "./Store/Store";
 import { Box, CircularProgress } from "@mui/material";
 import Layout from "./Layout/Layout"; // Ensure Layout is imported
-import Live from "./Pages/Live";
+import Live from "./Pages/Live/Live";
 import Track from "./Pages/Track";
 import Profile from "./Pages/Profile";
-import Admin from "./Pages/Admin";
+import Admin from "./Pages/Admin/Admin";
 
 // Lazy loading components
 const Login = React.lazy(() => import("./Pages/Login"));
 const SignUp = React.lazy(() => import("./Pages/Signup"));
-const Setings = React.lazy(() => import("./Pages/Setings"));
+const Setings = React.lazy(() => import("./Pages/Register/Setings"));
 
 function Loading() {
   return (

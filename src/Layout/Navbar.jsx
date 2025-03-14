@@ -1,74 +1,496 @@
-import { useState } from "react";
-import { Button, Typography, Box, AppBar, Toolbar, IconButton, Menu, MenuItem } from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { 
+  Button, 
+  Typography, 
+  Box, 
+  AppBar, 
+  Toolbar, 
+  IconButton, 
+  Menu, 
+  MenuItem, 
+  Drawer,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  Avatar,
+  Fade,
+  useMediaQuery,
+  useTheme
+} from "@mui/material";
+import { 
+  Menu as MenuIcon, 
+  AccountCircle, 
+  Settings, 
+  Logout, 
+  Login, 
+  PersonAdd, 
+  AdminPanelSettings, 
+  LocationOn,
+  ChevronRight,
+  Home
+} from "@mui/icons-material";
+import { Link, useLocation } from "react-router-dom";
 import { useStore } from "../Store/Store";
-import { MoreVert } from "@mui/icons-material";
-export default function Navbar() {
-  const [anchorEl, setAnchorEl] = useState(null);
-  const { isAdmin, isLogin, setisLogin } = useStore();
 
-  const handleMenuOpen = (event) => {
-    setAnchorEl(event.currentTarget);
+export default function Navbar() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileAnchorEl, setProfileAnchorEl] = useState(null);
+  const { isAdmin, isLogin, setisLogin } = useStore();
+  const location = useLocation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
+  // Check if a link is active
+  const isActive = (path) => {
+    return location.pathname === path;
   };
 
-  function LogotManage() {
+  const handleProfileMenuOpen = (event) => {
+    setProfileAnchorEl(event.currentTarget);
+  };
+
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
+
+  const handleProfileMenuClose = () => {
+    setProfileAnchorEl(null);
+  };
+
+  function LogoutManage() {
     localStorage.clear();
     setisLogin(false);
-    console.clear();
+    handleProfileMenuClose();
+    window.location.reload()
+    if (mobileOpen) setMobileOpen(false);
   }
 
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
+  const drawer = (
+    <Box
+      onClick={handleDrawerToggle}
+      sx={{
+        width: 250,
+        pt: 1,
+      }}
+    >
+      <Box display="flex" justifyContent="center" alignItems="center" flexDirection="column" py={2}>
+        <Avatar 
+          sx={{ 
+            width: 60, 
+            height: 60, 
+            bgcolor: 'primary.main',
+            mb: 1
+          }}
+        >
+          <Typography variant="h5">V</Typography>
+        </Avatar>
+        <Typography variant="h6" align="center" sx={{ fontWeight: 'bold' }}>V-MARG</Typography>
+        <Typography variant="caption" align="center" sx={{ color: 'text.secondary' }}>Skoegle IOT Innovations Pvt Ltd</Typography>
+      </Box>
+      
+      <Divider />
+      
+      <List>
+        {!isLogin ? (
+          <>
+            <ListItem 
+              button 
+              component={Link} 
+              to="/login"
+              selected={isActive('/login')}
+              sx={{
+                borderRadius: '0 20px 20px 0',
+                mx: 1,
+                mb: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Login />
+              </ListItemIcon>
+              <ListItemText primary="Login" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              component={Link} 
+              to="/signup"
+              selected={isActive('/signup')}
+              sx={{
+                borderRadius: '0 20px 20px 0',
+                mx: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon>
+                <PersonAdd />
+              </ListItemIcon>
+              <ListItemText primary="Sign Up" />
+            </ListItem>
+          </>
+        ) : (
+          <>
+            <ListItem 
+              button 
+              component={Link} 
+              to="/"
+              selected={isActive('/')}
+              sx={{
+                borderRadius: '0 20px 20px 0',
+                mx: 1,
+                mb: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon>
+                <LocationOn />
+              </ListItemIcon>
+              <ListItemText primary="Live" />
+            </ListItem>
+            
+            <ListItem 
+              button 
+              component={Link} 
+              to="/settings"
+              selected={isActive('/settings')}
+              sx={{
+                borderRadius: '0 20px 20px 0',
+                mx: 1,
+                mb: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiListItemIcon-root': {
+                    color: 'white',
+                  },
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Settings />
+              </ListItemIcon>
+              <ListItemText primary="Add Device" />
+            </ListItem>
+
+            {isLogin && (
+              <ListItem 
+                button 
+                component={Link} 
+                to="/profile"
+                selected={isActive('/profile')}
+                sx={{
+                  borderRadius: '0 20px 20px 0',
+                  mx: 1,
+                  mb: 1,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    '& .MuiListItemIcon-root': {
+                      color: 'white',
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <AccountCircle />
+                </ListItemIcon>
+                <ListItemText primary="Profile" />
+              </ListItem>
+            )}
+
+            {isAdmin && isLogin && (
+              <ListItem 
+                button 
+                component={Link} 
+                to="/admin"
+                selected={isActive('/admin')}
+                sx={{
+                  borderRadius: '0 20px 20px 0',
+                  mx: 1,
+                  mb: 1,
+                  '&.Mui-selected': {
+                    bgcolor: 'primary.main',
+                    color: 'white',
+                    '& .MuiListItemIcon-root': {
+                      color: 'white',
+                    },
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <AdminPanelSettings />
+                </ListItemIcon>
+                <ListItemText primary="Admin" />
+              </ListItem>
+            )}
+            
+            <Divider sx={{ my: 1 }} />
+            
+            <ListItem 
+              button 
+              component={Link} 
+              to="/login"
+              onClick={LogoutManage}
+              sx={{
+                borderRadius: '0 20px 20px 0',
+                mx: 1,
+                mb: 1,
+                color: 'error.main',
+                '& .MuiListItemIcon-root': {
+                  color: 'error.main',
+                },
+              }}
+            >
+              <ListItemIcon>
+                <Logout />
+              </ListItemIcon>
+              <ListItemText primary="Logout" />
+            </ListItem>
+          </>
+        )}
+      </List>
+    </Box>
+  );
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "rgb(4, 4, 38)" }}>
-      <Toolbar sx={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
-        <Typography variant="h6" sx={{ position: "absolute", left: 20 }}>Skoegle</Typography>
-        <Typography variant="h6" sx={{ textAlign: "center" }}>V-Marg</Typography>
-        <Box sx={{ position: "absolute", right: 20, display: { xs: "none", md: "block" } }}>
-          {isLogin && !isAdmin && <Button component={Link} to="/profile" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Profile</Button>}
-          {isAdmin && isLogin && <Button component={Link} to="/admin" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Admin</Button>}
-          {!isLogin ? (
+    <AppBar 
+      position="sticky" 
+      elevation={2}
+      sx={{ 
+        backgroundColor: "rgb(4, 4, 38)",
+        backgroundImage: "linear-gradient(90deg, rgb(4, 4, 38) 0%, rgb(29, 29, 70) 100%)"
+      }}
+    >
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", px: { xs: 1, sm: 2, md: 3 } }}>
+        {/* Logo and Brand */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <IconButton
+            color="inherit"
+            aria-label="open drawer"
+            edge="start"
+            onClick={handleDrawerToggle}
+            sx={{ mr: 1, display: { md: 'none' } }}
+          >
+            <MenuIcon />
+          </IconButton>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography 
+              variant="subtitle1" 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                textDecoration: 'none', 
+                color: 'inherit', 
+                fontSize: '1rem', 
+                fontWeight: 400,
+                opacity: 0.8
+              }}
+            >
+              Skoegle
+            </Typography>
+            
+            <Typography 
+              variant="h6" 
+              noWrap 
+              component={Link} 
+              to="/" 
+              sx={{ 
+                ml: 2,
+                textDecoration: 'none', 
+                color: 'white',
+                fontWeight: 700,
+                letterSpacing: 1
+              }}
+            >
+              V-MARG
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Desktop Navigation */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+          {isLogin ? (
             <>
-              <Button component={Link} to="/login" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Login</Button>
-              <Button component={Link} to="/signup" variant="contained" sx={{ backgroundColor: "white", color: "rgb(4, 4, 38)", mr: 1 }}>Sign Up</Button>
+              <Button 
+                component={Link} 
+                to="/" 
+                variant={isActive('/') ? "contained" : "text"}
+                startIcon={<LocationOn />}
+                sx={{ 
+                  color: isActive('/') ? "primary.contrastText" : "white",
+                  px: 2,
+                  py: 0.8,
+                  borderRadius: '20px',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }
+                }}
+              >
+                Live
+              </Button>
+              
+              <Button 
+                component={Link} 
+                to="/settings" 
+                variant={isActive('/settings') ? "contained" : "text"}
+                startIcon={<Settings />}
+                sx={{ 
+                  color: isActive('/settings') ? "primary.contrastText" : "white",
+                  px: 2,
+                  py: 0.8,
+                  borderRadius: '20px',
+                  '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.1)' }
+                }}
+              >
+                Add Device
+              </Button>
+              
+              <IconButton 
+                onClick={handleProfileMenuOpen}
+                size="large"
+                edge="end"
+                color="inherit"
+                sx={{ 
+                  ml: 1,
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                  '&:hover': { 
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                    border: '2px solid rgba(255, 255, 255, 0.5)'
+                  }
+                }}
+              >
+                <AccountCircle />
+              </IconButton>
+              
+              <Menu
+                anchorEl={profileAnchorEl}
+                open={Boolean(profileAnchorEl)}
+                onClose={handleProfileMenuClose}
+                TransitionComponent={Fade}
+                elevation={3}
+                sx={{ mt: 1 }}
+              >
+                {isLogin && (
+                  <MenuItem 
+                    component={Link} 
+                    to="/profile"
+                    onClick={handleProfileMenuClose}
+                    dense
+                  >
+                    <ListItemIcon>
+                      <AccountCircle fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Profile</ListItemText>
+                  </MenuItem>
+                )}
+                
+                {isAdmin && isLogin && (
+                  <MenuItem 
+                    component={Link} 
+                    to="/admin"
+                    onClick={handleProfileMenuClose}
+                    dense
+                  >
+                    <ListItemIcon>
+                      <AdminPanelSettings fontSize="small" />
+                    </ListItemIcon>
+                    <ListItemText>Admin</ListItemText>
+                  </MenuItem>
+                )}
+                
+                <Divider />
+                
+                <MenuItem 
+                  onClick={LogoutManage}
+                  sx={{ color: 'error.main' }}
+                  dense
+                >
+                  <ListItemIcon>
+                    <Logout fontSize="small" color="error" />
+                  </ListItemIcon>
+                  <ListItemText>Logout</ListItemText>
+                </MenuItem>
+              </Menu>
             </>
           ) : (
             <>
-              <Button component={Link} to="/" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Live</Button>
-              {/* <Button component={Link} to="/track" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Track</Button> */}
-              <Button component={Link} to="/settings" variant="outlined" sx={{ color: "white", borderColor: "white", mr: 1 }}>Add Device</Button>
-              <Button component={Link} to="/login" onClick={LogotManage} variant="contained" sx={{ backgroundColor: "white", color: "rgb(4, 4, 38)", mr: 1 }}>Logout</Button>
+              <Button 
+                component={Link} 
+                to="/login" 
+                variant="outlined"
+                startIcon={<Login />} 
+                sx={{ 
+                  color: "white", 
+                  borderColor: "rgba(255,255,255,0.5)", 
+                  borderRadius: '20px',
+                  px: 2,
+                  '&:hover': { 
+                    borderColor: "white",
+                    bgcolor: 'rgba(255, 255, 255, 0.1)'
+                  }
+                }}
+              >
+                Login
+              </Button>
+              
+              <Button 
+                component={Link} 
+                to="/signup" 
+                variant="contained" 
+                startIcon={<PersonAdd />}
+                sx={{ 
+                  backgroundColor: "white", 
+                  color: "rgb(4, 4, 38)",
+                  borderRadius: '20px',
+                  px: 2,
+                  ml: 1,
+                  fontWeight: 'bold',
+                  '&:hover': { 
+                    backgroundColor: "rgba(255,255,255,0.9)"
+                  }
+                }}
+              >
+                Sign Up
+              </Button>
             </>
           )}
         </Box>
-    
-<IconButton
-  sx={{ display: { xs: "block", md: "none" }, color: "white", position: "absolute", right: 20 }}
-  onClick={handleMenuOpen}
->
-  <MoreVert />
-</IconButton>
-        <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-          {!isLogin ? (
-            <>
-              <MenuItem component={Link} to="/login" onClick={handleMenuClose}>Login</MenuItem>
-              <MenuItem component={Link} to="/signup" onClick={handleMenuClose}>Sign Up</MenuItem>
-            </>
-          ) : (
-            <>
-              <MenuItem component={Link} to="/" onClick={handleMenuClose}>Live</MenuItem>
-              {/* <MenuItem component={Link} to="/track" onClick={handleMenuClose}>Track</MenuItem> */}
-              <MenuItem component={Link} to="/settings" onClick={handleMenuClose}>Add Device</MenuItem>
-             {isLogin && !isAdmin && <MenuItem component={Link} to="/profile" onClick={handleMenuClose}>Profile</MenuItem>}
-              {isAdmin && <MenuItem component={Link} to="/admin" onClick={handleMenuClose}>Admin</MenuItem>}
-              <MenuItem component={Link} to="/login" onClick={() => { LogotManage(); handleMenuClose(); }}>Logout</MenuItem>
-            </>
-          )}
-        </Menu>
       </Toolbar>
+      
+      {/* Mobile Drawer */}
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        ModalProps={{
+          keepMounted: true, // Better open performance on mobile.
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: 250 },
+        }}
+      >
+        {drawer}
+      </Drawer>
     </AppBar>
   );
 }
