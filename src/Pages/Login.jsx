@@ -24,8 +24,7 @@ import {
 } from '@mui/icons-material';
 
 const bypassOtpEmails = {
-  "manojgowdabr89@gmail.com": true,
-  "testuser@test.com": true,
+  "manojgowda@gmail.com": true
 };
 
 export default function Login() {

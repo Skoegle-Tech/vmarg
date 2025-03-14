@@ -17,7 +17,7 @@ export function StoreProvider({ children }) {
   const [isLogin, setisLogin] = useState(localStorage?.getItem("isLogin") === "true" || false);
   const [isAdmin, setisAdmin] = useState(localStorage?.getItem("isAdmin") === "true" || false);
   const [token, settoken] = useState(localStorage?.getItem("token") || "");
-  const [skipotp, setskipotp] = useState(true);
+  const [skipotp, setskipotp] = useState(false);
 
 
   useEffect(() => {
