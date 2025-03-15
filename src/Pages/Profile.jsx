@@ -59,7 +59,7 @@ export default function Profile() {
           email: fetchedUser?.user.email || "",
           phoneNumber: fetchedUser?.user.phoneNumber || "",
           custommerId: fetchedUser?.user.custommerId || "",
-          password: ""
+          password: fetchedUser?.user.password || ""
         });
         setLoading(false);
       } catch (error) {
@@ -123,7 +123,7 @@ export default function Profile() {
       setUpdating(true);
       await updateUserProfile(updatedData);
       setIsEditing(false);
-      setFormData({ ...formData, password: "" });
+      setFormData({ ...formData});
       toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error updating profile:", error);
