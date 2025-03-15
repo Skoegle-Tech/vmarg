@@ -149,7 +149,7 @@ export default function Profile() {
       email: user?.email || "",
       phoneNumber: user?.phoneNumber || "",
       custommerId: user?.custommerId || "",
-      password: ""
+      password: user?.password || ""
     });
     setErrors({});
     setIsEditing(false);
