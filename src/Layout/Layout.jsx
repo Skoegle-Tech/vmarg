@@ -36,6 +36,8 @@ export default function Layout({ children, title }) {
             
             <main>{children}</main>
             {isDesktop && <Footer />}
+            <br/>
+            <br/>
             {isMobileOrTablet && <Menu className={classes.mobileMenu} />}
         </>
     );
