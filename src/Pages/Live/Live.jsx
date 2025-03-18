@@ -4,7 +4,6 @@ import Layout from "../../Layout/Layout";
 import { useStore } from "../../Store/Store";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import axios from 'axios';
 import {
   Box,
   CircularProgress,
@@ -42,7 +41,16 @@ export default function Live() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.between('md', 'lg'));
-  
+  const { 
+    addGeofencingDevice, 
+    deleteGeofencingDevice, 
+    getGeofencingData, 
+    getRealTimeData, 
+    updateGeofencingRadius,
+    GetRegisterdDevices, 
+    deleteRegesteredDevice 
+  } = useStore();
+
   const mapRef = useRef(null);
   const [selectedDeviceIndex, setSelectedDeviceIndex] = useState(0);
   const [deviceData, setDeviceData] = useState({});
@@ -51,7 +59,6 @@ export default function Live() {
   const [deviceOptions, setDeviceOptions] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { GetRegisterdDevices, deleteRegesteredDevice } = useStore();
   const defaultLatLng = { lat: 20.5937, lng: 78.9629 }; // India's center coordinates
   const [sliderValue, setSliderValue] = useState(1);
   const [errorSnackbar, setErrorSnackbar] = useState({ open: false, message: "" });
@@ -156,8 +163,7 @@ export default function Live() {
       }
       
       // If Firebase didn't have data, try the API
-      const response = await axios.get(`https://production-server-tygz.onrender.com/api/realtime/${device}`);
-      const apiData = response.data;
+      const apiData = await getRealTimeData(device);
       
       if (apiData?.time && apiData?.date) {
         const latitude = parseFloat(apiData.latitude);
@@ -243,8 +249,7 @@ export default function Live() {
       }
       
       // If Firebase didn't have data, try the API
-      const response = await axios.get(`https://production-server-tygz.onrender.com/api/geofencing/${device}`);
-      const apiData = response.data;
+      const apiData = await getGeofencingData(device);
       
       if (apiData?._id) {
         setDeviceData((prev) => ({
@@ -299,9 +304,7 @@ export default function Live() {
         await set(ref(database, `${device}/geofencing/radius`), radius);
       } else {
         // Update via API
-        await axios.put(`https://production-server-tygz.onrender.com/api/geofencing/${device}/${radius}`, {
-          radius: radius
-        });
+        await updateGeofencingRadius(device, radius);
       }
       
       // Update local state to reflect the new radius
@@ -566,19 +569,10 @@ export default function Live() {
           });
         } else {
           // Add geofencing via API
-          await axios.post(
-            'https://production-server-tygz.onrender.com/api/device/geofencing',
-            {
-              deviceName: selectedDevice,
-              latitude: data.lat,
-              longitude: data.lng
-            },
-            {
-              headers: {
-                'Authorization': `Bearer ${localStorage?.getItem("token")}`
-              }
-            }
-          );
+          await addGeofencingDevice(selectedDevice, {
+            lat: data.lat,
+            lng: data.lng
+          });
         }
   
         setSuccessSnackbar({
@@ -625,14 +619,7 @@ export default function Live() {
         await remove(ref(database, `${selectedDevice}/geofencing`));
       } else {
         // Remove geofencing via API
-        await axios.delete(`https://production-server-tygz.onrender.com/api/geofencing/${selectedDevice}`, {
-          data: {
-            deviceName: selectedDevice
-          },
-          headers: {
-            'Authorization': `Bearer ${localStorage?.getItem("token")}`
-          }
-        });
+        await deleteGeofencingDevice(selectedDevice);
       }
       
       setSuccessSnackbar({

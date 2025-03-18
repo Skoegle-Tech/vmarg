@@ -15,14 +15,14 @@ import {
   Edit as EditIcon,
   DevicesOther as DeviceIcon
 } from "@mui/icons-material";
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import Layout from "../../Layout/Layout";
-import axios from "axios";
 import { toast } from "react-toastify";
 import QRCodeScanner from "./QRCodeScanning";
 import ManualEntryForm from "./ManualEntryForm";
 import NicknameDialog from "./NicknameDialog";
 import InfoCard from "./InfoCard";
+import { useStore } from "../../Store/Store";
 
 // TabPanel component
 function TabPanel(props) {
@@ -48,6 +48,7 @@ function TabPanel(props) {
 export default function RegisterDevice() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const { addDevice, logRealtimeData } = useStore();
   
   // State variables
   const [deviceName, setDeviceName] = useState("");
@@ -62,7 +63,7 @@ export default function RegisterDevice() {
   const [loadingStep, setLoadingStep] = useState(null);
   const [activeTab, setActiveTab] = useState(0);
   const [errors, setErrors] = useState({});
-  
+
   // Handle tab change
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -94,21 +95,19 @@ export default function RegisterDevice() {
     try {
       setLoadingStep("Validating device...");
       const cleanedDeviceCode = deviceCode.replace(/\n/g, "");
-      await axios.post("https://production-server-tygz.onrender.com/api/verify/adddevice", {
-        deviceName,
-        deviceCode: cleanedDeviceCode,
-        custommerId,
-        nickname,
-      });
+      
+      // Use store functions instead of direct axios calls
+      await addDevice(deviceName, cleanedDeviceCode, custommerId, nickname);
 
       setLoadingStep("Registering device with your customer ID...");
-      await axios.post("https://production-server-tygz.onrender.com/api/realtime/logs", {
-        deviceName: deviceName,
-        latitude: 37.7749,
-        longitude: -122.4194,
-        date: "06-02-2025",
-        time: "14:30:00",
-      });
+      // Sample coordinates - in a production app, you might want to get actual location
+      await logRealtimeData(
+        deviceName, 
+        37.7749,  // latitude
+        -122.4194, // longitude
+        "06-02-2025", // date
+        "14:30:00"  // time
+      );
 
       setLoadingStep("Adding device...");
       setSuccess(true);

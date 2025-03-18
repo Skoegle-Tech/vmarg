@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { signup, login, verifyUser } from "./AuthApis";
 import { fetchUserProfile, updateUserProfile } from "./ProfileApis";
 import { fetchDevicesByCustomerId,GetRegisterdDevices,deleteDeviceByDeviceString,deleteMultipleDevices,AddUser,addDevicesToCustomer, fetchCustomers, deleteCustomer, deleteRegesteredDevice } from "./DeviceApi";
+import { addGeofencingDevice, deleteGeofencingDevice, getGeofencingData, getRealTimeData, updateGeofencingRadius } from "./Geofencing";
+import { addDevice, logRealtimeData } from "./Register";
 
 const StoreContext = createContext(null);
 
@@ -17,7 +19,7 @@ export function StoreProvider({ children }) {
   const [isLogin, setisLogin] = useState(localStorage?.getItem("isLogin") === "true" || false);
   const [isAdmin, setisAdmin] = useState(localStorage?.getItem("isAdmin") === "true" || false);
   const [token, settoken] = useState(localStorage?.getItem("token") || "");
-  const [skipotp, setskipotp] = useState(false);
+  const [skipotp, setskipotp] = useState(true);
 
 
   useEffect(() => {
@@ -77,7 +79,18 @@ export function StoreProvider({ children }) {
         fetchCustomers,
         deleteCustomer,
         GetRegisterdDevices,
-        deleteRegesteredDevice
+        deleteRegesteredDevice,
+        deleteGeofencingDevice,
+        addGeofencingDevice,
+        updateGeofencingRadius,
+        getGeofencingData,
+        getRealTimeData,
+        addDevice,
+        logRealtimeData
+        
+
+        
+
       }}
     >
       {children}
