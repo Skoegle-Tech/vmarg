@@ -389,7 +389,7 @@ export default function Login() {
                     </Typography>
                     <Box sx={{ mt: 4 }}>
                       <Typography variant="subtitle2" sx={{ opacity: 0.8, fontSize: '0.85rem' }}>
-                        Secure login with two-factor authentication with
+                        Secure login with two-factor authentication 
                       </Typography>
                       <Typography variant="subtitle2" sx={{ opacity: 0.8, fontSize: '0.85rem' }}>
                         End-to-end encrypted connection 
