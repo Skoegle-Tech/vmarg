@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { signup, login, verifyUser } from "./AuthApis";
+import { signup, login, verifyUser, logout } from "./AuthApis";
 import { fetchUserProfile, updateUserProfile } from "./ProfileApis";
 import { fetchDevicesByCustomerId,GetRegisterdDevices,deleteDeviceByDeviceString,deleteMultipleDevices,AddUser,addDevicesToCustomer, fetchCustomers, deleteCustomer, deleteRegesteredDevice } from "./DeviceApi";
 import { addGeofencingDevice, deleteGeofencingDevice, getGeofencingData, getRealTimeData, updateGeofencingRadius } from "./Geofencing";
@@ -53,6 +53,7 @@ export function StoreProvider({ children }) {
     setisAdmin(false);
     settoken("");
     console.clear()
+    logout()
     window.location.href = "/login";
   };
 
@@ -61,6 +62,7 @@ export function StoreProvider({ children }) {
       value={{
         signup,
         login,
+        logout,
         setisAdmin,
         setisLogin,
         skipotp,
