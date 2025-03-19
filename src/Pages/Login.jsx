@@ -382,7 +382,7 @@ export default function Login() {
                   <Box sx={{ mb: 4 }}>
                     <SecurityIcon sx={{ fontSize: 60, mb: 2, opacity: 0.8 }} />
                     <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
-                      Welcome Back
+                      Welcome Back 
                     </Typography>
                     <Typography variant="body1" sx={{ opacity: 0.9, mb: 2 }}>
                       Log in to access your V-Marg account and track your devices securely.
@@ -392,7 +392,7 @@ export default function Login() {
                         Secure login with two-factor authentication
                       </Typography>
                       <Typography variant="subtitle2" sx={{ opacity: 0.8, fontSize: '0.85rem' }}>
-                        End-to-end encrypted connection
+                        End-to-end encrypted connection and Information Delivery
                       </Typography>
                     </Box>
                   </Box>
