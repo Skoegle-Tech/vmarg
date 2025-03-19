@@ -31,17 +31,16 @@ import {
   ChevronRight,
   Home
 } from "@mui/icons-material";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation,useNavigate } from "react-router-dom";
 import { useStore } from "../Store/Store";
-
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileAnchorEl, setProfileAnchorEl] = useState(null);
-  const { isAdmin, isLogin, setisLogin } = useStore();
+  const { isAdmin, isLogin, setisLogin,logout } = useStore();
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  
+  const navigate = useNavigate();
   // Check if a link is active
   const isActive = (path) => {
     return location.pathname === path;
@@ -60,10 +59,14 @@ export default function Navbar() {
   };
 
   function LogoutManage() {
-    localStorage.clear();
-    setisLogin(false);
     handleProfileMenuClose();
-    window.location.reload()
+     console.log("logout");
+    logout();
+    setisLogin(false);
+    localStorage.clear();
+    navigate('/login');
+    // window.location.reload()
+    
     if (mobileOpen) setMobileOpen(false);
   }
 

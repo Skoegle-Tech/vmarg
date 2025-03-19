@@ -53,10 +53,15 @@ export const verifyUser = async () => {
 
 export const logout = async () => {
   try {
-    const response = await axios.get(`${BASE_URL}/user/logout?token=${localStorage.getItem("token")}`,{
-      withCredentials:true
-    });
-    localStorage.clear()
+    const response = await axios.get(
+      `${BASE_URL}/user/logout`,
+      {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem("token")}`
+        },
+        withCredentials: true  // Moved inside the main options object
+      }
+    );
     return response.data;
   } catch (error) {
     console.error('Error during logout:', error.response?.data || error.message);
