@@ -23,7 +23,7 @@ import { initializeApp } from "firebase/app";
 import { getDatabase, ref, onValue, set, remove, get } from "firebase/database";
 import { firebaseConfig } from "../Firebase";
 import { CloudQueue as CloudIcon, Storage as StorageIcon } from '@mui/icons-material';
-
+import Skeleton from '@mui/material/Skeleton';
 // Import components
 import DeviceNavigation from './DeviceNavigation';
 import MapView from './MapView';
@@ -712,21 +712,89 @@ export default function Live() {
           <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column',
-            justifyContent: 'center', 
-            alignItems: 'center', 
-            height: '70vh',
-            gap: 3 
+            width: '100%',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            position: 'relative'
           }}>
-            <CircularProgress size={60} thickness={4} />
-            <Typography variant="h6" color="text.secondary">
-              Loading device data...
-            </Typography>
+            {/* Navigation Skeleton */}
+            <Box sx={{ p: 2, borderBottom: '1px solid rgba(0,0,0,0.12)' }}>
+              <Grid container alignItems="center" spacing={2}>
+                <Grid item>
+                  <Skeleton variant="circular" width={40} height={40} />
+                </Grid>
+                <Grid item>
+                  <Skeleton variant="text" width={100} height={40} />
+                </Grid>
+                <Grid item>
+                  <Skeleton variant="circular" width={40} height={40} />
+                </Grid>
+                <Grid item xs>
+                  <Skeleton variant="text" height={40} />
+                </Grid>
+              </Grid>
+            </Box>
+  
+            {/* Main Content Skeleton */}
+            <Grid container spacing={2} sx={{ p: 2 }}>
+              {/* Map Area Skeleton */}
+              <Grid item xs={12} md={8}>
+                <Skeleton 
+                  variant="rectangular" 
+                  height={isMobile ? 300 : 500} 
+                  sx={{ 
+                    borderRadius: 2,
+                    aspectRatio: isMobile ? '1' : '2/1'
+                  }} 
+                />
+              </Grid>
+  
+              {/* Info Panel Skeleton */}
+              <Grid item xs={12} md={4}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {/* Data Source Skeleton */}
+                  <Skeleton 
+                    variant="rectangular" 
+                    height={40} 
+                    sx={{ borderRadius: 1 }} 
+                  />
+  
+                  {/* Device Status Skeleton */}
+                  <Skeleton 
+                    variant="rounded" 
+                    height={120} 
+                    sx={{ borderRadius: 2 }} 
+                  />
+  
+                  {/* Geofence Settings Skeleton */}
+                  <Skeleton 
+                    variant="rounded" 
+                    height={200} 
+                    sx={{ borderRadius: 2 }} 
+                  />
+  
+                  {/* Action Buttons Skeleton */}
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Skeleton 
+                      variant="rounded" 
+                      width="100%" 
+                      height={40} 
+                    />
+                    <Skeleton 
+                      variant="rounded" 
+                      width="100%" 
+                      height={40} 
+                    />
+                  </Box>
+                </Box>
+              </Grid>
+            </Grid>
           </Box>
         </Container>
       </Layout>
     );
   }
-
   return (
     <Layout title={"Vmarg - Live Tracking"}>
       <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
