@@ -27,7 +27,7 @@
     "react-router-dom": "^7.1.5",
     "react-toastify": "^11.0.3",
     "react-webcam": "^7.2.0",
-    "smtp-package": "^1.0.1"
+    "smtp-package": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
