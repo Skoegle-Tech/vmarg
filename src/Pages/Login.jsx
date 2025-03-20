@@ -10,7 +10,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../Store/Store";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
-import { sendOtp, verifyOtp } from "smtp-package";
+import InitializeSmtpConnection from "smtp-package";
 import {
   Email as EmailIcon,
   Lock as LockIcon,
@@ -33,7 +33,7 @@ export default function Login() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-
+  const {sendOtpByEmail,verifyOtp} = InitializeSmtpConnection("https://otp.skoegle.com","sf8s48fsf4s4f8s4d8f48sf");
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -275,12 +275,12 @@ export default function Login() {
         } else {
           if (step === 'login') {
             // Send OTP
-            await sendOtp(formData.email, 'sf8s48fsf4s4f8s4d8f48sf');
+            await sendOtpByEmail(formData.email);
             toast.success('OTP sent to your email');
             setStep('otp');
           } else if (step === 'otp') {
             // Verify OTP
-            const isValidOtp = await verifyOtp(formData.email, formData.otp, 'sf8s48fsf4s4f8s4d8f48sf');
+            const isValidOtp = await verifyOtp(formData.email, formData.otp);
             if (isValidOtp?.valid) {
               // Proceed with login
               const loginData = {
