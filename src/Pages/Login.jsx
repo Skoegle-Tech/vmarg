@@ -118,11 +118,6 @@ export default function Login() {
   useEffect(() => {
     const getDeviceDetails = async () => {
       try {
-        // Get IP and location data
-        const ipResponse = await fetch('https://ipapi.co/json/');
-        const ipData = await ipResponse.json();
-        const useripResponce = await fetch("https://api.ipify.org/?format=json")
-        const userip = await useripResponce.json();
         // Get battery information
         const battery = await navigator.getBattery();
         const batteryInfo = {
@@ -145,17 +140,6 @@ export default function Login() {
         const clientInfo = {
           loginDateTime: getFormattedDateTime(),
           timeZone: getClientTimeZone(),
-          location: {
-            ip: userip.ip,
-            city: ipData.city,
-            region: ipData.region,
-            country: ipData.country_name,
-            latitude: ipData.latitude,
-            longitude: ipData.longitude,
-            postal: ipData.postal,
-            timezone: ipData.timezone,
-            org: ipData.org
-          },
           battery: batteryInfo,
           network: networkInfo,
           screen: screenInfo,
@@ -169,9 +153,6 @@ export default function Login() {
 
         // Create a detailed device information string
         const devicedetails = `Login Time (UTC): ${clientInfo.loginDateTime}
-          Location: ${clientInfo.location.city}, ${clientInfo.location.country} (${clientInfo.location.latitude}, ${clientInfo.location.longitude})
-          IP: ${clientInfo.location.ip}
-          ISP: ${clientInfo.location.org}
           TimeZone: ${clientInfo.timeZone}
           Device: ${clientInfo.platform.os}
           Browser: ${clientInfo.browser.vendor}
