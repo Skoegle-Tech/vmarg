@@ -10,7 +10,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { useStore } from "../Store/Store";
 import Layout from "../Layout/Layout";
 import { toast } from "react-toastify";
-import InitializeSmtpConnection from "smtp-package";
 import {
   Email as EmailIcon,
   Lock as LockIcon,
@@ -28,12 +27,11 @@ const bypassOtpEmails = {
 };
 
 export default function Login() {
-  const { login, setisAdmin, setisLogin, skipotp } = useStore();
+  const { login, setisAdmin, setisLogin, skipotp,verifyOtp,sendOtpByEmail } = useStore();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isSmall = useMediaQuery(theme.breakpoints.down('sm'));
-  const { sendOtpByEmail, verifyOtp } = InitializeSmtpConnection("https://otp.skoegle.com","sf8s48fsf4s4f8s4d8f48sf");
   const [formData, setFormData] = useState({
     email: '',
     password: '',
