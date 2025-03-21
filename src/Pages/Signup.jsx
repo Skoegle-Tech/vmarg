@@ -19,11 +19,13 @@ import {
   KeyboardArrowLeft as KeyboardArrowLeftIcon,
   KeyboardArrowRight as KeyboardArrowRightIcon,
   HowToReg as HowToRegIcon,
-  ArrowBack as ArrowBackIcon
+  ArrowBack as ArrowBackIcon,
+  VerifiedUser as VerifiedUserIcon,
+  Check as CheckIcon
 } from '@mui/icons-material';
 
 export default function SignUp() {
-  const { signup } = useStore();
+  const { signup, verifyOtp, sendOtpByEmail, sendOtpBySms, setskipemailotp, skipemailotp, setskipsmsotp, skipsmsotp } = useStore();
   const navigate = useNavigate();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -35,6 +37,8 @@ export default function SignUp() {
     phoneNumber: '',
     password: '',
     confirmPassword: '',
+    emailOtp: '',
+    phoneOtp: ''
   });
 
   const [errors, setErrors] = useState({});
@@ -42,6 +46,16 @@ export default function SignUp() {
   const [activeStep, setActiveStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // OTP States
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [sendingEmailOtp, setSendingEmailOtp] = useState(false);
+  const [sendingPhoneOtp, setSendingPhoneOtp] = useState(false);
+  const [verifyingEmailOtp, setVerifyingEmailOtp] = useState(false);
+  const [verifyingPhoneOtp, setVerifyingPhoneOtp] = useState(false);
   
   // Define the steps
   const steps = [
@@ -60,11 +74,27 @@ export default function SignUp() {
       fields: ['password', 'confirmPassword'],
       icon: <LockIcon />
     },
+    {
+      label: 'Verify',
+      fields: ['emailOtp', 'phoneOtp'],
+      icon: <VerifiedUserIcon />
+    }
   ];
 
   // Get current fields based on active step
   const currentFields = steps[activeStep]?.fields || [];
   
+  // Check if verification step can be skipped
+  useEffect(() => {
+    if (skipemailotp) {
+      setEmailVerified(true);
+    }
+    
+    if (skipsmsotp) {
+      setPhoneVerified(true);
+    }
+  }, [skipemailotp, skipsmsotp]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -129,6 +159,30 @@ export default function SignUp() {
         isValid = false;
       }
     }
+
+    if (currentFields.includes('emailOtp')) {
+      if (!skipemailotp && !emailVerified) {
+        if (!formData.emailOtp.trim()) {
+          tempErrors.emailOtp = 'Email OTP is required';
+          isValid = false;
+        } else if (!/^[0-9]{6}$/.test(formData.emailOtp)) {
+          tempErrors.emailOtp = 'OTP must be 6 digits';
+          isValid = false;
+        }
+      }
+    }
+    
+    if (currentFields.includes('phoneOtp')) {
+      if (!skipsmsotp && !phoneVerified) {
+        if (!formData.phoneOtp.trim()) {
+          tempErrors.phoneOtp = 'Phone OTP is required';
+          isValid = false;
+        } else if (!/^[0-9]{6}$/.test(formData.phoneOtp)) {
+          tempErrors.phoneOtp = 'OTP must be 6 digits';
+          isValid = false;
+        }
+      }
+    }
     
     setErrors(tempErrors);
     return isValid;
@@ -171,6 +225,10 @@ export default function SignUp() {
 
   const handleNext = () => {
     if (validateCurrentStep()) {
+      // If moving to verification step, send OTPs
+      if (activeStep === 2) {
+        handleSendOtps();
+      }
       setActiveStep((prevStep) => prevStep + 1);
     }
   };
@@ -179,8 +237,128 @@ export default function SignUp() {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
+  const handleSendOtps = async () => {
+    // Send Email OTP if not skipped
+    if (!skipemailotp && !emailOtpSent) {
+      setSendingEmailOtp(true);
+      try {
+        const emailOtpResponse = await sendOtpByEmail(formData.email);
+        if (emailOtpResponse?.valid) {
+          setEmailOtpSent(true);
+          toast.success("OTP sent to your email");
+        } else {
+          toast.error(emailOtpResponse?.message || "Failed to send email OTP");
+        }
+      } catch (error) {
+        console.error("Email OTP error:", error);
+        toast.error("Failed to send email OTP");
+      } finally {
+        setSendingEmailOtp(false);
+      }
+    }
+    
+    // Send SMS OTP if not skipped
+    if (!skipsmsotp && !phoneOtpSent) {
+      setSendingPhoneOtp(true);
+      try {
+        const smsOtpResponse = await sendOtpBySms(formData.phoneNumber);
+        if (smsOtpResponse?.valid) {
+          setPhoneOtpSent(true);
+          toast.success("OTP sent to your phone");
+        } else {
+          toast.error(smsOtpResponse?.message || "Failed to send SMS OTP");
+        }
+      } catch (error) {
+        console.error("SMS OTP error:", error);
+        toast.error("Failed to send SMS OTP");
+      } finally {
+        setSendingPhoneOtp(false);
+      }
+    }
+  };
+
+  const verifyEmailOtp = async () => {
+    if (formData.emailOtp.trim() && !emailVerified) {
+      setVerifyingEmailOtp(true);
+      try {
+        const response = await verifyOtp(formData.email, formData.emailOtp);
+        if (response?.valid) {
+          setEmailVerified(true);
+          toast.success("Email verified successfully");
+        } else {
+          toast.error(response?.message || "Invalid email OTP");
+        }
+      } catch (error) {
+        console.error("Email verification error:", error);
+        toast.error("Email verification failed");
+      } finally {
+        setVerifyingEmailOtp(false);
+      }
+    }
+  };
+
+  const verifyPhoneOtp = async () => {
+    if (formData.phoneOtp.trim() && !phoneVerified) {
+      setVerifyingPhoneOtp(true);
+      try {
+        const response = await verifyOtp(formData.phoneNumber, formData.phoneOtp);
+        if (response?.valid) {
+          setPhoneVerified(true);
+          toast.success("Phone verified successfully");
+        } else {
+          toast.error(response?.message || "Invalid phone OTP");
+        }
+      } catch (error) {
+        console.error("Phone verification error:", error);
+        toast.error("Phone verification failed");
+      } finally {
+        setVerifyingPhoneOtp(false);
+      }
+    }
+  };
+
+  const resendEmailOtp = async () => {
+    setSendingEmailOtp(true);
+    try {
+      const emailOtpResponse = await sendOtpByEmail(formData.email);
+      if (emailOtpResponse?.valid) {
+        toast.success("OTP resent to your email");
+      } else {
+        toast.error(emailOtpResponse?.message || "Failed to resend email OTP");
+      }
+    } catch (error) {
+      console.error("Email OTP error:", error);
+      toast.error("Failed to resend email OTP");
+    } finally {
+      setSendingEmailOtp(false);
+    }
+  };
+
+  const resendPhoneOtp = async () => {
+    setSendingPhoneOtp(true);
+    try {
+      const smsOtpResponse = await sendOtpBySms(formData.phoneNumber);
+      if (smsOtpResponse?.valid) {
+        toast.success("OTP resent to your phone");
+      } else {
+        toast.error(smsOtpResponse?.message || "Failed to resend SMS OTP");
+      }
+    } catch (error) {
+      console.error("SMS OTP error:", error);
+      toast.error("Failed to resend SMS OTP");
+    } finally {
+      setSendingPhoneOtp(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check if verification is needed
+    if (activeStep === steps.length && (!skipemailotp && !emailVerified || !skipsmsotp && !phoneVerified)) {
+      toast.error("Please verify your email and phone number");
+      return;
+    }
     
     if (validateAllFields()) {
       setLoading(true);
@@ -379,6 +557,143 @@ export default function SignUp() {
       case 3:
         return (
           <Fade in={activeStep === 3} timeout={500}>
+            <Box>
+              <Typography variant="h6" gutterBottom color="primary">
+                Verify your contact information
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                Enter the verification codes sent to your email and phone number.
+              </Typography>
+              
+              {/* Email verification */}
+              {!skipemailotp && (
+                <Box sx={{ mb: 3 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <EmailIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="subtitle1">Email Verification</Typography>
+                    {emailVerified && (
+                      <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', color: 'success.main' }}>
+                        <CheckIcon fontSize="small" />
+                        <Typography variant="body2" color="success.main">Verified</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {!emailVerified ? (
+                    <>
+                      <FormControl fullWidth margin="normal" error={!!errors.emailOtp}>
+                        <InputLabel htmlFor="emailOtp">Email OTP</InputLabel>
+                        <OutlinedInput
+                          id="emailOtp"
+                          name="emailOtp"
+                          value={formData.emailOtp}
+                          onChange={handleChange}
+                          label="Email OTP"
+                          disabled={verifyingEmailOtp}
+                          endAdornment={
+                            <InputAdornment position="end">
+                              <Button 
+                                variant="text" 
+                                size="small" 
+                                onClick={verifyEmailOtp}
+                                disabled={!formData.emailOtp || verifyingEmailOtp}
+                              >
+                                {verifyingEmailOtp ? <CircularProgress size={20} /> : "Verify"}
+                              </Button>
+                            </InputAdornment>
+                          }
+                        />
+                        {errors.emailOtp && <FormHelperText>{errors.emailOtp}</FormHelperText>}
+                      </FormControl>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={resendEmailOtp}
+                        disabled={sendingEmailOtp}
+                        sx={{ mt: 1 }}
+                      >
+                        {sendingEmailOtp ? <CircularProgress size={20} /> : "Resend OTP"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
+                      Your email has been successfully verified.
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              
+              {/* Phone verification */}
+              {!skipsmsotp && (
+                <Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                    <PhoneIcon color="primary" sx={{ mr: 1 }} />
+                    <Typography variant="subtitle1">Phone Verification</Typography>
+                    {phoneVerified && (
+                      <Box sx={{ ml: 1, display: 'flex', alignItems: 'center', color: 'success.main' }}>
+                        <CheckIcon fontSize="small" />
+                        <Typography variant="body2" color="success.main">Verified</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {!phoneVerified ? (
+                    <>
+                      <FormControl fullWidth margin="normal" error={!!errors.phoneOtp}>
+                        <InputLabel htmlFor="phoneOtp">Phone OTP</InputLabel>
+                        <OutlinedInput
+                          id="phoneOtp"
+                          name="phoneOtp"
+                          value={formData.phoneOtp}
+                          onChange={handleChange}
+                          label="Phone OTP"
+                          disabled={verifyingPhoneOtp}
+                          endAdornment={
+                            <InputAdornment position="end">
+                              <Button 
+                                variant="text" 
+                                size="small" 
+                                onClick={verifyPhoneOtp}
+                                disabled={!formData.phoneOtp || verifyingPhoneOtp}
+                              >
+                                {verifyingPhoneOtp ? <CircularProgress size={20} /> : "Verify"}
+                              </Button>
+                            </InputAdornment>
+                          }
+                        />
+                        {errors.phoneOtp && <FormHelperText>{errors.phoneOtp}</FormHelperText>}
+                      </FormControl>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={resendPhoneOtp}
+                        disabled={sendingPhoneOtp}
+                        sx={{ mt: 1 }}
+                      >
+                        {sendingPhoneOtp ? <CircularProgress size={20} /> : "Resend OTP"}
+                      </Button>
+                    </>
+                  ) : (
+                    <Typography variant="body2" color="success.main" sx={{ mt: 1 }}>
+                      Your phone number has been successfully verified.
+                    </Typography>
+                  )}
+                </Box>
+              )}
+              
+              {/* If both verification methods are skipped */}
+              {skipemailotp && skipsmsotp && (
+                <Typography variant="body2" color="info.main" sx={{ mt: 3 }}>
+                  Verification step has been skipped based on system configuration.
+                </Typography>
+              )}
+            </Box>
+          </Fade>
+        );
+      
+      case 4:
+        return (
+          <Fade in={activeStep === 4} timeout={500}>
             <Box sx={{ textAlign: "center", py: 2 }}>
               <HowToRegIcon color="success" sx={{ fontSize: 60, mb: 2 }} />
               <Typography variant="h5" gutterBottom color="primary" fontWeight="bold">
@@ -397,9 +712,27 @@ export default function SignUp() {
                   <Typography variant="body2" color="text.secondary">Email:</Typography>
                   <Typography variant="body2">{formData.email}</Typography>
                 </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                   <Typography variant="body2" color="text.secondary">Phone:</Typography>
                   <Typography variant="body2">{formData.phoneNumber}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <Typography variant="body2" color="text.secondary">Verification Status:</Typography>
+                  <Box>
+                    {!skipemailotp && (
+                      <Typography variant="body2" color={emailVerified ? "success.main" : "error.main"}>
+                        Email: {emailVerified ? "Verified" : "Not Verified"}
+                      </Typography>
+                    )}
+                    {!skipsmsotp && (
+                      <Typography variant="body2" color={phoneVerified ? "success.main" : "error.main"}>
+                        Phone: {phoneVerified ? "Verified" : "Not Verified"}
+                      </Typography>
+                    )}
+                    {(skipemailotp && skipsmsotp) && (
+                      <Typography variant="body2">Verification Skipped</Typography>
+                    )}
+                  </Box>
                 </Box>
               </Paper>
               
@@ -413,6 +746,16 @@ export default function SignUp() {
       default:
         return null;
     }
+  };
+
+  // Determine if "Next" should be disabled
+  const isNextDisabled = () => {
+    if (activeStep === 3) {
+      // For verification step
+      if (!skipemailotp && !emailVerified) return true;
+      if (!skipsmsotp && !phoneVerified) return true;
+    }
+    return false;
   };
 
   return (

@@ -4,6 +4,7 @@ import { fetchUserProfile, updateUserProfile } from "./ProfileApis";
 import { fetchDevicesByCustomerId,GetRegisterdDevices,deleteDeviceByDeviceString,deleteMultipleDevices,AddUser,addDevicesToCustomer, fetchCustomers, deleteCustomer, deleteRegesteredDevice } from "./DeviceApi";
 import { addGeofencingDevice, deleteGeofencingDevice, getGeofencingData, getRealTimeData, updateGeofencingRadius } from "./Geofencing";
 import { addDevice, logRealtimeData } from "./Register";
+import { sendOtpByEmail,  sendOtpBySms, verifyOtp, sendCustomMessageByEmail,sendCustomMessageBySms  } from "./Smtp";
 
 const StoreContext = createContext(null);
 
@@ -19,7 +20,9 @@ export function StoreProvider({ children }) {
   const [isLogin, setisLogin] = useState(localStorage?.getItem("isLogin") === "true" || false);
   const [isAdmin, setisAdmin] = useState(localStorage?.getItem("isAdmin") === "true" || false);
   const [token, settoken] = useState(localStorage?.getItem("token") || "");
-  const [skipotp, setskipotp] = useState(false);
+  const [skipotp, setskipotp] = useState(true);
+  const [skipsmsotp, setskipsmsotp] = useState(false);
+  const [skipemailotp, setskipemailotp] = useState(false)
 
 
   useEffect(() => {
@@ -88,8 +91,17 @@ export function StoreProvider({ children }) {
         getGeofencingData,
         getRealTimeData,
         addDevice,
-        logRealtimeData
-        
+        logRealtimeData,
+        sendOtpByEmail,
+        sendOtpBySms,
+        verifyOtp,
+        sendCustomMessageByEmail,
+        sendCustomMessageBySms,
+        setskipemailotp,
+        skipemailotp,
+        setskipsmsotp,
+        skipsmsotp
+
 
         
 
