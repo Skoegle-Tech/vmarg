@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Layout from "../Layout/Layout";
 import { useStore } from "../Store/Store";
 import {
@@ -22,7 +22,12 @@ import {
   useTheme,
   useMediaQuery,
   IconButton,
-  Skeleton
+  Skeleton,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle
 } from "@mui/material";
 import { toast } from "react-toastify";
 import {
@@ -33,34 +38,49 @@ import {
   Email as EmailIcon,
   Phone as PhoneIcon,
   VpnKey as KeyIcon,
-  Badge as BadgeIcon
+  Badge as BadgeIcon,
+  LockOpen as LockOpenIcon,
+  Refresh as RefreshIcon
 } from "@mui/icons-material";
 
 export default function Profile() {
-  const { fetchUserProfile, updateUserProfile } = useStore();
+  const { fetchUserProfile, updateUserProfile, sendOtpByEmail, verifyOtp } = useStore();
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({});
+  const [originalData, setOriginalData] = useState({}); // To track original data
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [errors, setErrors] = useState({});
   const [activeTab, setActiveTab] = useState(0);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // OTP related states
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [otpError, setOtpError] = useState("");
+  const [openOtpDialog, setOpenOtpDialog] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
 
   useEffect(() => {
     const getUserProfile = async () => {
       try {
         const fetchedUser = await fetchUserProfile();
         setUser(fetchedUser?.user);
-        setFormData({
+        
+        const initialData = {
           firstName: fetchedUser?.user.firstName || "",
           lastName: fetchedUser?.user.lastName || "",
           email: fetchedUser?.user.email || "",
           phoneNumber: fetchedUser?.user.phoneNumber || "",
           custommerId: fetchedUser?.user.custommerId || "",
           password: fetchedUser?.user.password || ""
-        });
+        };
+        
+        setFormData(initialData);
+        setOriginalData(initialData); // Store original data for comparison
         setLoading(false);
       } catch (error) {
         console.error("Error fetching user profile:", error);
@@ -71,6 +91,19 @@ export default function Profile() {
 
     getUserProfile();
   }, [fetchUserProfile]);
+
+  // Check if form data has changed compared to original data
+  const hasFormChanged = useMemo(() => {
+    if (!originalData || Object.keys(originalData).length === 0) return false;
+    
+    // Check each field to see if any have changed
+    return Object.keys(formData).some(key => {
+      // Skip password if it's empty as it might not be returned from the backend
+      if (key === 'password' && !formData[key]) return false;
+      
+      return formData[key] !== originalData[key];
+    });
+  }, [formData, originalData]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -109,28 +142,102 @@ export default function Profile() {
     return errors;
   };
 
-  const handleUpdate = async () => {
+  // Send OTP before update
+  const handleInitiateUpdate = async () => {
+    // If no changes made, no need to proceed
+    if (!hasFormChanged) {
+      setIsEditing(false);
+      return;
+    }
+    
     const formErrors = validateForm();
     setErrors(formErrors);
 
     if (Object.keys(formErrors).length > 0) {
       return;
     }
-
-    const updatedData = { ...formData };
     
     try {
-      setUpdating(true);
-      await updateUserProfile(updatedData);
-      setIsEditing(false);
-      setFormData({ ...formData});
-      toast.success("Profile updated successfully!");
+      setOpenOtpDialog(true);
+      setSendingOtp(true);
+      // Send OTP to the user's email
+      await sendOtpByEmail(formData.email);
+      setIsOtpSent(true);
+      setSendingOtp(false);
+      toast.success("Verification code sent to your email");
     } catch (error) {
-      console.error("Error updating profile:", error);
-      toast.error("Failed to update profile. Please try again.");
-    } finally {
-      setUpdating(false);
+      console.error("Error sending OTP:", error);
+      setSendingOtp(false);
+      toast.error("Failed to send verification code. Please try again.");
+      setOpenOtpDialog(false);
     }
+  };
+
+  // Handle OTP input change
+  const handleOtpChange = (e) => {
+    setOtpValue(e.target.value);
+    setOtpError("");
+  };
+
+  // Resend OTP function
+  const handleResendOtp = async () => {
+    try {
+      setSendingOtp(true);
+      await sendOtpByEmail(formData.email);
+      setSendingOtp(false);
+      toast.success("New verification code sent to your email");
+    } catch (error) {
+      console.error("Error resending OTP:", error);
+      setSendingOtp(false);
+      toast.error("Failed to send verification code. Please try again.");
+    }
+  };
+
+  // Verify OTP and then update profile
+  const handleVerifyAndUpdate = async () => {
+    if (!otpValue || otpValue.trim() === "") {
+      setOtpError("Please enter the verification code");
+      return;
+    }
+
+    try {
+      setVerifyingOtp(true);
+      
+      // Verify the OTP
+      const isOtpValid = await verifyOtp(formData.email, otpValue);
+      
+      if (isOtpValid) {
+        // OTP verified successfully, proceed with profile update
+        const updatedData = { ...formData };
+        await updateUserProfile(updatedData);
+        
+        // Update original data to match current form data
+        setOriginalData({...formData});
+        
+        // Close dialog and reset OTP states
+        setOpenOtpDialog(false);
+        setIsOtpSent(false);
+        setOtpValue("");
+        setIsEditing(false);
+        
+        toast.success("Profile updated successfully!");
+      } else {
+        setOtpError("Invalid verification code. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error during verification or update:", error);
+      setOtpError("Verification failed. Please try again.");
+      toast.error("Failed to verify or update profile. Please try again.");
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const closeOtpDialog = () => {
+    setOpenOtpDialog(false);
+    setIsOtpSent(false);
+    setOtpValue("");
+    setOtpError("");
   };
 
   const handleTabChange = (event, newValue) => {
@@ -143,14 +250,7 @@ export default function Profile() {
   };
 
   const resetForm = () => {
-    setFormData({
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.email || "",
-      phoneNumber: user?.phoneNumber || "",
-      custommerId: user?.custommerId || "",
-      password: user?.password || ""
-    });
+    setFormData({...originalData});
     setErrors({});
     setIsEditing(false);
   };
@@ -298,7 +398,8 @@ export default function Profile() {
                           label="Email Address"
                           variant="outlined"
                           fullWidth
-                          disabled={!isEditing || updating}
+                          disabled={true}
+                          // disabled={!isEditing || updating}
                           name="email"
                           value={formData.email}
                           onChange={handleChange}
@@ -420,10 +521,10 @@ export default function Profile() {
                       variant="contained"
                       color="primary"
                       startIcon={updating ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
-                      onClick={handleUpdate}
-                      disabled={updating}
+                      onClick={handleInitiateUpdate}
+                      disabled={updating || !hasFormChanged} // Disable if no changes or updating
                     >
-                      {updating ? "Saving..." : "Save Changes"}
+                      {updating ? "Saving..." : hasFormChanged ? "Save Changes" : "No Changes"}
                     </Button>
                   </>
                 )}
@@ -432,6 +533,76 @@ export default function Profile() {
           </Paper>
         </Slide>
       </Container>
+
+      {/* OTP Verification Dialog */}
+      <Dialog
+        open={openOtpDialog}
+        onClose={closeOtpDialog}
+        aria-labelledby="otp-dialog-title"
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle id="otp-dialog-title">
+          <Box display="flex" alignItems="center">
+            <LockOpenIcon sx={{ mr: 1, color: 'primary.main' }} />
+            Verify Your Identity
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            For security purposes, we've sent a verification code to your email {formData.email}. Please enter the code below to complete your profile update.
+          </DialogContentText>
+          
+          {sendingOtp ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+              <CircularProgress size={40} />
+            </Box>
+          ) : (
+            <>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Verification Code"
+                type="text"
+                fullWidth
+                variant="outlined"
+                value={otpValue}
+                onChange={handleOtpChange}
+                error={!!otpError}
+                helperText={otpError}
+                inputProps={{ maxLength: 6 }}
+                placeholder="Enter 6-digit code"
+                sx={{ mt: 1 }}
+              />
+              
+              <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                <Button 
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={handleResendOtp}
+                  disabled={sendingOtp}
+                >
+                  Resend Code
+                </Button>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={closeOtpDialog} color="inherit" disabled={verifyingOtp}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleVerifyAndUpdate} 
+            variant="contained" 
+            color="primary"
+            disabled={verifyingOtp || sendingOtp}
+            startIcon={verifyingOtp ? <CircularProgress size={16} color="inherit" /> : null}
+          >
+            {verifyingOtp ? "Verifying..." : "Verify & Update"}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Layout>
   );
 }
